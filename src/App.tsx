@@ -564,16 +564,16 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
 
   const inp: any = {
     width: "100%",
-    padding: "12px 16px",
-    borderRadius: "8px",
-    border: "1px solid #CBD5E1",
+    padding: "14px 16px",
+    borderRadius: "12px",
+    border: "1.5px solid #E2E8F0",
     fontSize: "15px",
     outline: "none",
     boxSizing: "border-box",
-    fontFamily: "inherit",
-    background: "#fff",
+    fontFamily: "'Poppins', sans-serif",
+    background: "rgba(255, 255, 255, 0.8)",
     color: "#0F172A",
-    transition: "all 0.2s ease",
+    transition: "all 0.3s ease",
   };
 
   const labelStyle: any = {
@@ -581,71 +581,115 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
     fontSize: "13px",
     fontWeight: 600,
     color: "#475569",
-    marginBottom: "6px",
+    marginBottom: "8px",
+    letterSpacing: "0.3px",
   };
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
+        // Arka plana temizlik temalı bir görsel ve formun okunabilirliği için koyu bir katman (overlay) ekledik
+        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.85)), url('https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?q=80&w=1920&auto=format&fit=crop')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
+        fontFamily: "'Poppins', sans-serif", // Yeni ve daha profesyonel yazı tipi
       }}
     >
+      {/* Poppins fontunu projeye dahil ediyoruz */}
+      <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+      />
       <style>
         {`
           .modern-input:focus {
             border-color: #3B82F6 !important;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1) !important;
           }
           .modern-btn {
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            background-size: 200% auto;
           }
           .modern-btn:hover:not(:disabled) {
-            background: #1D4ED8 !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+            background-position: right center;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
           }
           .modern-btn:active:not(:disabled) {
             transform: translateY(0);
           }
         `}
       </style>
+
       <div
         style={{
-          background: "#ffffff",
-          borderRadius: "16px",
-          padding: "40px 32px",
+          // Cam efekti (Glassmorphism) arka plan
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderRadius: "24px",
+          padding: "48px 36px",
           width: "100%",
-          maxWidth: "400px",
-          boxShadow: "0 20px 40px -10px rgba(0,0,0,0.4)",
+          maxWidth: "420px",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+        <div style={{ textAlign: "center", marginBottom: "36px" }}>
+          {/* Vektörel SVG Logo Tasarımı */}
           <div
             style={{
-              width: "56px",
-              height: "56px",
-              borderRadius: "14px",
-              background: "#EFF6FF",
-              color: "#2563EB",
+              width: "64px",
+              height: "64px",
+              borderRadius: "18px",
+              background: "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "28px",
-              margin: "0 auto 16px",
-              boxShadow: "inset 0 0 0 1px rgba(59, 130, 246, 0.1)",
+              margin: "0 auto 20px",
+              boxShadow: "0 8px 16px rgba(59, 130, 246, 0.15)",
             }}
           >
-            🧹
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="url(#blue-grad)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <defs>
+                <linearGradient
+                  id="blue-grad"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor="#06B6D4" />
+                  <stop offset="100%" stopColor="#2563EB" />
+                </linearGradient>
+              </defs>
+              {/* Temizliği temsil eden su damlası ve parıltı efekti */}
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+              <path d="M16 2v4h-4" />
+              <circle cx="16" cy="6" r="1.5" fill="#06B6D4" stroke="none" />
+              <circle cx="8" cy="14" r="1.5" fill="#3B82F6" stroke="none" />
+            </svg>
           </div>
+
           <h1
             style={{
               margin: "0 0 8px",
-              fontSize: "24px",
+              fontSize: "26px",
               fontWeight: 800,
               color: "#0F172A",
               letterSpacing: "-0.5px",
@@ -653,12 +697,19 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
           >
             Temiz360
           </h1>
-          <p style={{ margin: 0, color: "#64748B", fontSize: "14px" }}>
-            Yönetim paneline giriş yapın
+          <p
+            style={{
+              margin: 0,
+              color: "#64748B",
+              fontSize: "14px",
+              fontWeight: 500,
+            }}
+          >
+            Halı Yıkama Yönetim Sistemi
           </p>
         </div>
 
-        <div style={{ display: "grid", gap: "20px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gap: "20px", marginBottom: "28px" }}>
           <div>
             <label style={labelStyle}>Email Adresi</label>
             <input
@@ -688,19 +739,20 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
         {err && (
           <div
             style={{
-              color: "#B91C1C",
+              color: "#DC2626",
               fontSize: "13px",
-              marginBottom: "20px",
+              fontWeight: 500,
+              marginBottom: "24px",
               background: "#FEF2F2",
               border: "1px solid #FECACA",
-              padding: "10px 12px",
-              borderRadius: "8px",
+              padding: "12px 16px",
+              borderRadius: "10px",
               display: "flex",
               alignItems: "center",
-              gap: "8px",
+              gap: "10px",
             }}
           >
-            <span style={{ fontSize: "16px" }}>⚠️</span> {err}
+            <span style={{ fontSize: "18px" }}>🚨</span> {err}
           </div>
         )}
 
@@ -710,18 +762,21 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
           disabled={loading}
           style={{
             width: "100%",
-            padding: "14px",
-            borderRadius: "8px",
+            padding: "16px",
+            borderRadius: "12px",
             border: "none",
-            background: loading ? "#93C5FD" : "#2563EB",
+            background: loading
+              ? "#93C5FD"
+              : "linear-gradient(to right, #2563EB 0%, #06B6D4 51%, #2563EB 100%)",
             color: "#fff",
             cursor: loading ? "not-allowed" : "pointer",
-            fontWeight: 600,
-            fontSize: "15px",
-            fontFamily: "inherit",
+            fontWeight: 700,
+            fontSize: "16px",
+            fontFamily: "'Poppins', sans-serif",
+            letterSpacing: "0.5px",
           }}
         >
-          {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+          {loading ? "Giriş yapılıyor..." : "Sisteme Giriş Yap"}
         </button>
       </div>
     </div>
