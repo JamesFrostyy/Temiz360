@@ -591,7 +591,7 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
         minHeight: "100vh",
         // Filtrenin saydamlığını azalttım (0.75 ve 0.92 yerine 0.40 ve 0.70 yaptım)
         // Su ve sanayi tipi yıkama hissiyatı veren yeni bir görsel ekledim
-        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.40), rgba(15, 23, 42, 0.70)), url('https://images.unsplash.com/photo-1585834015690-cb64c12ea847?q=80&w=1920&auto=format&fit=crop')`,
+        backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.40), rgba(15, 23, 42, 0.70)), url('/arkaplan.jpg')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundAttachment: "fixed",
