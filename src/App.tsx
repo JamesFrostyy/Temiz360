@@ -161,12 +161,12 @@ function smsMesaji(durum: string, order: Siparis, ht: HaliTuru[]): string {
     })
     .join(", ");
   const m: Record<string, string> = {
-    toplandı: `Sayın ${order.musteri}, halılarınız teslim alındı.\nSipariş No: ${order.id}\nHalılar: ${tl}\nTutar: ₺${order.fiyat}\nTemiz360`,
-    yıkamada: `Sayın ${order.musteri}, halılarınız yıkamaya alındı.\nSipariş No: ${order.id}\nHalılar: ${tl}\nTemiz360`,
-    kurutuluyor: `Sayın ${order.musteri}, halılarınız kurutuluyor.\nSipariş No: ${order.id}\nTemiz360`,
-    hazır: `Sayın ${order.musteri}, halılarınız HAZIR! 🎉\nSipariş No: ${order.id}\nHalılar: ${tl}\nÖdenecek: ₺${order.fiyat}\nTemiz360`,
-    dağıtımda: `Sayın ${order.musteri}, halılarınız yola çıktı! 🏍️\nSipariş No: ${order.id}\nÖdenecek: ₺${order.fiyat}\nTemiz360`,
-    teslim_edildi: `Sayın ${order.musteri}, halılarınız teslim edildi. ✅\nToplam: ₺${order.fiyat}\nTemiz360'ı tercih ettiğiniz için teşekkürler!`,
+    toplandı: `Sayın ${order.musteri}, halılarınız teslim alındı.\nSipariş No: ${order.id}\nHalılar: ${tl}\nTutar: ₺${order.fiyat}\nHalıPro`,
+    yıkamada: `Sayın ${order.musteri}, halılarınız yıkamaya alındı.\nSipariş No: ${order.id}\nHalılar: ${tl}\nHalıPro`,
+    kurutuluyor: `Sayın ${order.musteri}, halılarınız kurutuluyor.\nSipariş No: ${order.id}\nHalıPro`,
+    hazır: `Sayın ${order.musteri}, halılarınız HAZIR! 🎉\nSipariş No: ${order.id}\nHalılar: ${tl}\nÖdenecek: ₺${order.fiyat}\nHalıPro`,
+    dağıtımda: `Sayın ${order.musteri}, halılarınız yola çıktı! 🏍️\nSipariş No: ${order.id}\nÖdenecek: ₺${order.fiyat}\nHalıPro`,
+    teslim_edildi: `Sayın ${order.musteri}, halılarınız teslim edildi. ✅\nToplam: ₺${order.fiyat}\nHalıPro'yu tercih ettiğiniz için teşekkürler!`,
   };
   return m[durum] || "";
 }
@@ -348,14 +348,19 @@ function StatusBadge({ durum }: { durum: string }) {
       style={{
         background: c.bg,
         color: c.color,
-        padding: "3px 10px",
-        borderRadius: 20,
-        fontSize: 12,
-        fontWeight: 700,
+        padding: "6px 12px",
+        borderRadius: "24px",
+        fontSize: "12px",
+        fontWeight: 600,
         whiteSpace: "nowrap" as any,
+        border: `1px solid ${c.color}40`,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        fontFamily: "'Poppins', sans-serif",
       }}
     >
-      {c.icon} {c.label}
+      <span style={{ fontSize: "14px" }}>{c.icon}</span> {c.label}
     </span>
   );
 }
@@ -378,6 +383,7 @@ function Toast({ msg, type }: ToastState) {
         zIndex: 9999,
         boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
         whiteSpace: "nowrap" as any,
+        fontFamily: "'Poppins', sans-serif",
       }}
     >
       {type === "error" ? "❌ " : "✅ "}
@@ -428,7 +434,7 @@ function SetPasswordScreen({
     fontSize: 15,
     outline: "none",
     boxSizing: "border-box",
-    fontFamily: "inherit",
+    fontFamily: "'Poppins', sans-serif",
   };
 
   return (
@@ -440,6 +446,7 @@ function SetPasswordScreen({
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
+        fontFamily: "'Poppins', sans-serif",
       }}
     >
       <div
@@ -453,21 +460,6 @@ function SetPasswordScreen({
         }}
       >
         <div style={{ textAlign: "center" as any, marginBottom: 28 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 16,
-              background: "linear-gradient(135deg,#06B6D4,#3B82F6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 28,
-              margin: "0 auto 12px",
-            }}
-          >
-            🧹
-          </div>
           <h1
             style={{
               margin: "0 0 4px",
@@ -476,7 +468,7 @@ function SetPasswordScreen({
               color: "#0F172A",
             }}
           >
-            Temiz360
+            HalıPro
           </h1>
           <p style={{ margin: 0, color: "#64748B", fontSize: 14 }}>
             Hesabınız için şifre belirleyin
@@ -589,8 +581,6 @@ function LoginScreen({ onLogin }: { onLogin: (u: AuthUser) => void }) {
     <div
       style={{
         minHeight: "100vh",
-        // Filtrenin saydamlığını azalttım (0.75 ve 0.92 yerine 0.40 ve 0.70 yaptım)
-        // Su ve sanayi tipi yıkama hissiyatı veren yeni bir görsel ekledim
         backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.40), rgba(15, 23, 42, 0.70)), url('/arkaplan.jpg')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
@@ -849,7 +839,6 @@ function FirmaModal({
     setSaving(true);
     setErr("");
     try {
-      // Supabase Auth'da kullanıcı davet et
       const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method: "POST",
         headers: {
@@ -883,7 +872,7 @@ function FirmaModal({
     fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
-    fontFamily: "inherit",
+    fontFamily: "'Poppins', sans-serif",
     background: "#FAFAFA",
   };
 
@@ -892,19 +881,20 @@ function FirmaModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
+        background: "rgba(15,23,42,0.65)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
         zIndex: 2000,
+        fontFamily: "'Poppins', sans-serif",
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "#fff",
-          borderRadius: "20px 20px 0 0",
-          padding: "20px 16px 32px",
+          borderRadius: "24px 24px 0 0",
+          padding: "20px 20px 32px",
           width: "100%",
           maxWidth: 600,
           maxHeight: "85vh",
@@ -916,7 +906,7 @@ function FirmaModal({
           style={{
             width: 40,
             height: 4,
-            background: "#E5E7EB",
+            background: "#E2E8F0",
             borderRadius: 4,
             margin: "0 auto 16px",
           }}
@@ -925,7 +915,7 @@ function FirmaModal({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
@@ -934,7 +924,7 @@ function FirmaModal({
           <button
             onClick={onClose}
             style={{
-              background: "#F3F4F6",
+              background: "#F1F5F9",
               border: "none",
               borderRadius: 8,
               width: 32,
@@ -952,23 +942,23 @@ function FirmaModal({
           style={{
             background: "#F8FAFC",
             borderRadius: 12,
-            padding: 14,
+            padding: 16,
             border: "1.5px dashed #CBD5E1",
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
-              color: "#6B7280",
+              color: "#64748B",
               marginBottom: 10,
               textTransform: "uppercase" as any,
             }}
           >
             Yeni Firma Ekle
           </div>
-          <div style={{ display: "grid", gap: 8, marginBottom: 10 }}>
+          <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
             <input
               style={inp}
               value={ad}
@@ -984,7 +974,7 @@ function FirmaModal({
             />
           </div>
           {err && (
-            <div style={{ color: "#DC2626", fontSize: 12, marginBottom: 8 }}>
+            <div style={{ color: "#DC2626", fontSize: 13, marginBottom: 10 }}>
               ❌ {err}
             </div>
           )}
@@ -996,7 +986,7 @@ function FirmaModal({
               padding: "12px",
               borderRadius: 10,
               border: "none",
-              background: "linear-gradient(135deg,#1E40AF,#3B82F6)",
+              background: "linear-gradient(135deg,#2563EB,#3B82F6)",
               color: "#fff",
               cursor: saving ? "not-allowed" : "pointer",
               fontWeight: 700,
@@ -1006,25 +996,15 @@ function FirmaModal({
           >
             {saving ? "Ekleniyor..." : "+ Firma Ekle & Davet Gönder"}
           </button>
-          <p
-            style={{
-              fontSize: 11,
-              color: "#9CA3AF",
-              margin: "8px 0 0",
-              textAlign: "center" as any,
-            }}
-          >
-            Firmaya otomatik davet emaili gönderilir
-          </p>
         </div>
 
         {/* Firma listesi */}
         <div
           style={{
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: 700,
-            color: "#6B7280",
-            marginBottom: 8,
+            color: "#64748B",
+            marginBottom: 10,
             textTransform: "uppercase" as any,
           }}
         >
@@ -1041,7 +1021,7 @@ function FirmaModal({
             Yükleniyor...
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             {firmalar.length === 0 && (
               <div
                 style={{
@@ -1061,28 +1041,28 @@ function FirmaModal({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "12px 14px",
+                  padding: "14px",
                   background: "#F8FAFC",
                   borderRadius: 12,
-                  border: "1px solid #E5E7EB",
+                  border: "1px solid #E2E8F0",
                 }}
               >
                 <div>
                   <div
-                    style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}
+                    style={{ fontWeight: 700, fontSize: 15, color: "#0F172A" }}
                   >
                     🏢 {f.ad}
                   </div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>
                     {f.email}
                   </div>
                 </div>
                 <span
                   style={{
                     fontSize: 11,
-                    background: f.aktif ? "#D1FAE5" : "#F3F4F6",
-                    color: f.aktif ? "#065F46" : "#6B7280",
-                    padding: "3px 10px",
+                    background: f.aktif ? "#D1FAE5" : "#F1F5F9",
+                    color: f.aktif ? "#065F46" : "#64748B",
+                    padding: "4px 12px",
                     borderRadius: 20,
                     fontWeight: 700,
                   }}
@@ -1124,6 +1104,7 @@ function HaliModal({
     "⭐",
     "🎨",
   ];
+
   const guncelle = (i: number, f: string, v: any) => {
     const k = [...liste];
     k[i] = { ...k[i], [f]: f === "birimFiyat" ? +v : v };
@@ -1145,34 +1126,37 @@ function HaliModal({
     ]);
     setYeni({ ad: "", birimFiyat: "", icon: "🪄" });
   };
+
   const inp: any = {
-    padding: "8px 10px",
+    padding: "10px",
     borderRadius: 8,
-    border: "1.5px solid #E5E7EB",
-    fontSize: 13,
-    fontFamily: "inherit",
+    border: "1.5px solid #E2E8F0",
+    fontSize: 14,
+    fontFamily: "'Poppins', sans-serif",
     outline: "none",
-    background: "#FAFAFA",
+    background: "#fff",
     boxSizing: "border-box",
   };
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
+        background: "rgba(15,23,42,0.65)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
         zIndex: 2000,
+        fontFamily: "'Poppins', sans-serif",
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "#fff",
-          borderRadius: "20px 20px 0 0",
-          padding: "20px 16px 32px",
+          borderRadius: "24px 24px 0 0",
+          padding: "20px 20px 32px",
           width: "100%",
           maxWidth: 600,
           maxHeight: "85vh",
@@ -1184,7 +1168,7 @@ function HaliModal({
           style={{
             width: 40,
             height: 4,
-            background: "#E5E7EB",
+            background: "#E2E8F0",
             borderRadius: 4,
             margin: "0 auto 20px",
           }}
@@ -1193,16 +1177,16 @@ function HaliModal({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
-            🪄 Halı Türleri
+            🪄 Halı Türleri ve Fiyatlar
           </h2>
           <button
             onClick={onClose}
             style={{
-              background: "#F3F4F6",
+              background: "#F1F5F9",
               border: "none",
               borderRadius: 8,
               width: 32,
@@ -1214,14 +1198,14 @@ function HaliModal({
             ✕
           </button>
         </div>
-        <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+        <div style={{ display: "grid", gap: 10, marginBottom: 20 }}>
           {liste.map((t, i) => (
             <div
               key={t.id}
               style={{
                 display: "grid",
-                gridTemplateColumns: "36px 1fr 80px 32px",
-                gap: 6,
+                gridTemplateColumns: "44px 1fr 90px 36px",
+                gap: 8,
                 alignItems: "center",
               }}
             >
@@ -1229,7 +1213,7 @@ function HaliModal({
                 style={{
                   ...inp,
                   padding: "4px",
-                  fontSize: 18,
+                  fontSize: 20,
                   textAlign: "center" as any,
                 }}
                 value={t.icon}
@@ -1259,8 +1243,8 @@ function HaliModal({
                   background: "#FEE2E2",
                   border: "none",
                   borderRadius: 8,
-                  width: 32,
-                  height: 32,
+                  width: 36,
+                  height: 36,
                   cursor: "pointer",
                   color: "#DC2626",
                   fontSize: 16,
@@ -1275,17 +1259,17 @@ function HaliModal({
           style={{
             background: "#F8FAFC",
             borderRadius: 12,
-            padding: 12,
+            padding: 16,
             border: "1.5px dashed #CBD5E1",
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
-              color: "#6B7280",
-              marginBottom: 8,
+              color: "#64748B",
+              marginBottom: 12,
               textTransform: "uppercase" as any,
             }}
           >
@@ -1294,8 +1278,8 @@ function HaliModal({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "36px 1fr 80px auto",
-              gap: 6,
+              gridTemplateColumns: "44px 1fr 90px auto",
+              gap: 8,
               alignItems: "center",
             }}
           >
@@ -1303,7 +1287,7 @@ function HaliModal({
               style={{
                 ...inp,
                 padding: "4px",
-                fontSize: 18,
+                fontSize: 20,
                 textAlign: "center" as any,
               }}
               value={yeni.icon}
@@ -1333,14 +1317,14 @@ function HaliModal({
             <button
               onClick={ekle}
               style={{
-                background: "#DBEAFE",
-                color: "#1D4ED8",
+                background: "#EFF6FF",
+                color: "#2563EB",
                 border: "none",
                 borderRadius: 8,
-                padding: "8px 10px",
+                padding: "10px 14px",
                 cursor: "pointer",
                 fontWeight: 700,
-                fontSize: 12,
+                fontSize: 13,
                 fontFamily: "inherit",
               }}
             >
@@ -1352,18 +1336,18 @@ function HaliModal({
           onClick={() => onSave(liste)}
           style={{
             width: "100%",
-            padding: "14px",
+            padding: "16px",
             borderRadius: 12,
             border: "none",
-            background: "linear-gradient(135deg,#1E40AF,#3B82F6)",
+            background: "linear-gradient(135deg,#2563EB,#3B82F6)",
             color: "#fff",
             cursor: "pointer",
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: 16,
             fontFamily: "inherit",
           }}
         >
-          Kaydet
+          Değişiklikleri Kaydet
         </button>
       </div>
     </div>
@@ -1396,19 +1380,20 @@ function SmsModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
+        background: "rgba(15,23,42,0.65)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
         zIndex: 2000,
+        fontFamily: "'Poppins', sans-serif",
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "#fff",
-          borderRadius: "20px 20px 0 0",
-          padding: "20px 16px 32px",
+          borderRadius: "24px 24px 0 0",
+          padding: "20px 20px 32px",
           width: "100%",
           maxWidth: 600,
           maxHeight: "85vh",
@@ -1420,7 +1405,7 @@ function SmsModal({
           style={{
             width: 40,
             height: 4,
-            background: "#E5E7EB",
+            background: "#E2E8F0",
             borderRadius: 4,
             margin: "0 auto 20px",
           }}
@@ -1429,7 +1414,7 @@ function SmsModal({
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginBottom: 12,
+            marginBottom: 16,
           }}
         >
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
@@ -1438,7 +1423,7 @@ function SmsModal({
           <button
             onClick={onClose}
             style={{
-              background: "#F3F4F6",
+              background: "#F1F5F9",
               border: "none",
               borderRadius: 8,
               width: 32,
@@ -1453,16 +1438,17 @@ function SmsModal({
         <div
           style={{
             background: "#F8FAFC",
-            borderRadius: 10,
-            padding: "10px 12px",
-            marginBottom: 12,
-            fontSize: 13,
-            color: "#374151",
+            borderRadius: 12,
+            padding: "14px",
+            marginBottom: 16,
+            fontSize: 14,
+            color: "#334155",
+            border: "1px solid #E2E8F0",
           }}
         >
-          <strong>{order.musteri}</strong> · {order.telefon}
+          <strong>{order.musteri}</strong> <br /> {order.telefon}
         </div>
-        <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+        <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
           {Object.keys(STATUS_CONFIG)
             .filter((s) => s !== "bekliyor")
             .map((s) => {
@@ -1477,20 +1463,21 @@ function SmsModal({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    border: `1.5px solid ${aktif ? cfg.color : "#E5E7EB"}`,
-                    background: aktif ? cfg.bg : gone ? "#F9FAFB" : "#fff",
+                    padding: "14px 16px",
+                    borderRadius: 12,
+                    border: `1.5px solid ${aktif ? cfg.color : "#E2E8F0"}`,
+                    background: aktif ? cfg.bg : gone ? "#F8FAFC" : "#fff",
                     cursor: gone ? "not-allowed" : "pointer",
-                    opacity: gone ? 0.5 : 1,
+                    opacity: gone ? 0.6 : 1,
                     fontFamily: "inherit",
+                    transition: "all 0.2s",
                   }}
                 >
                   <span
                     style={{
                       fontWeight: 600,
-                      fontSize: 14,
-                      color: aktif ? cfg.color : "#374151",
+                      fontSize: 15,
+                      color: aktif ? cfg.color : "#334155",
                     }}
                   >
                     {cfg.icon} {cfg.label}
@@ -1498,7 +1485,7 @@ function SmsModal({
                   {gone && (
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: 12,
                         color: "#10B981",
                         fontWeight: 700,
                       }}
@@ -1516,23 +1503,24 @@ function SmsModal({
               background: "#F0FDF4",
               border: "1.5px solid #BBF7D0",
               borderRadius: 12,
-              padding: 12,
-              marginBottom: 12,
+              padding: "16px",
+              marginBottom: 20,
             }}
           >
             <div
               style={{
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 700,
                 color: "#166534",
-                marginBottom: 6,
+                marginBottom: 8,
+                letterSpacing: "0.5px",
               }}
             >
-              ÖNİZLEME
+              MESAJ ÖNİZLEME
             </div>
             <div
               style={{
-                fontSize: 13,
+                fontSize: 14,
                 color: "#15803D",
                 lineHeight: 1.6,
                 whiteSpace: "pre-line" as any,
@@ -1547,20 +1535,20 @@ function SmsModal({
           disabled={!sel || sending}
           style={{
             width: "100%",
-            padding: "14px",
+            padding: "16px",
             borderRadius: 12,
             border: "none",
             background: sel
-              ? "linear-gradient(135deg,#065F46,#059669)"
-              : "#E5E7EB",
-            color: sel ? "#fff" : "#9CA3AF",
+              ? "linear-gradient(135deg,#059669,#10B981)"
+              : "#E2E8F0",
+            color: sel ? "#fff" : "#94A3B8",
             cursor: sel ? "pointer" : "not-allowed",
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: 16,
             fontFamily: "inherit",
           }}
         >
-          {sending ? "Kaydediliyor..." : "📤 Gönder"}
+          {sending ? "Gönderiliyor..." : "📤 Mesajı Gönder"}
         </button>
       </div>
     </div>
@@ -1589,24 +1577,26 @@ function DetailSheet({
   const keys = Object.keys(STATUS_CONFIG);
   const idx = keys.indexOf(order.durum);
   const smsSayisi = Object.values(order.smsDurum || {}).filter(Boolean).length;
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
+        background: "rgba(15,23,42,0.65)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
         zIndex: 800,
+        fontFamily: "'Poppins', sans-serif",
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "#fff",
-          borderRadius: "20px 20px 0 0",
-          padding: "20px 16px 32px",
+          borderRadius: "24px 24px 0 0",
+          padding: "20px 20px 32px",
           width: "100%",
           maxWidth: 600,
           maxHeight: "90vh",
@@ -1618,30 +1608,31 @@ function DetailSheet({
           style={{
             width: 40,
             height: 4,
-            background: "#E5E7EB",
+            background: "#E2E8F0",
             borderRadius: 4,
-            margin: "0 auto 16px",
+            margin: "0 auto 20px",
           }}
         />
+
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            marginBottom: 12,
+            marginBottom: 16,
           }}
         >
           <div>
-            <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 700 }}>
-              {order.id}
-              {isAdmin && order.firmaAd ? ` · ${order.firmaAd}` : ""}
+            <div style={{ fontSize: 12, color: "#64748B", fontWeight: 700 }}>
+              {order.id}{" "}
+              {isAdmin && order.firmaAd ? ` · 🏢 ${order.firmaAd}` : ""}
             </div>
             <div
               style={{
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: 800,
-                color: "#111",
-                margin: "2px 0 6px",
+                color: "#0F172A",
+                margin: "4px 0 8px",
               }}
             >
               {order.musteri}
@@ -1651,7 +1642,7 @@ function DetailSheet({
           <button
             onClick={onClose}
             style={{
-              background: "#F3F4F6",
+              background: "#F1F5F9",
               border: "none",
               borderRadius: 8,
               width: 32,
@@ -1663,31 +1654,34 @@ function DetailSheet({
             ✕
           </button>
         </div>
+
         {/* Süreç */}
         <div
           style={{
             background: "#F8FAFC",
-            borderRadius: 14,
-            padding: 14,
-            marginBottom: 12,
+            borderRadius: 16,
+            padding: "16px",
+            marginBottom: 16,
+            border: "1px solid #E2E8F0",
           }}
         >
           <div
             style={{
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
-              color: "#6B7280",
-              marginBottom: 10,
+              color: "#64748B",
+              marginBottom: 16,
+              textTransform: "uppercase" as any,
             }}
           >
-            SİPARİŞ SÜRECİ
+            İşlem Süreci
           </div>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               overflowX: "auto" as any,
-              paddingBottom: 4,
+              paddingBottom: 8,
             }}
           >
             {keys.map((s, i) => {
@@ -1708,33 +1702,34 @@ function DetailSheet({
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      gap: 4,
+                      gap: 6,
                     }}
                   >
                     <div
                       style={{
-                        width: 28,
-                        height: 28,
+                        width: 32,
+                        height: 32,
                         borderRadius: "50%",
-                        background: done ? cfg.color : "#E5E7EB",
+                        background: done ? cfg.color : "#E2E8F0",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 11,
-                        color: done ? "#fff" : "#9CA3AF",
+                        fontSize: 12,
+                        color: done ? "#fff" : "#94A3B8",
                         fontWeight: 700,
-                        boxShadow: cur ? `0 0 0 3px ${cfg.bg}` : "none",
+                        boxShadow: cur ? `0 0 0 4px ${cfg.bg}` : "none",
+                        transition: "all 0.3s",
                       }}
                     >
                       {done ? (cur ? cfg.icon : "✓") : ""}
                     </div>
                     <div
                       style={{
-                        fontSize: 9,
-                        color: done ? "#374151" : "#9CA3AF",
+                        fontSize: 10,
+                        color: done ? "#334155" : "#94A3B8",
                         fontWeight: cur ? 700 : 500,
                         textAlign: "center" as any,
-                        maxWidth: 44,
+                        maxWidth: 50,
                       }}
                     >
                       {cfg.label}
@@ -1742,11 +1737,11 @@ function DetailSheet({
                     {order.smsDurum?.[s] && (
                       <div
                         style={{
-                          fontSize: 8,
+                          fontSize: 9,
                           background: "#D1FAE5",
                           color: "#065F46",
-                          padding: "1px 4px",
-                          borderRadius: 4,
+                          padding: "2px 6px",
+                          borderRadius: 6,
                           fontWeight: 700,
                         }}
                       >
@@ -1757,11 +1752,11 @@ function DetailSheet({
                   {i < keys.length - 1 && (
                     <div
                       style={{
-                        width: 14,
+                        width: 20,
                         height: 2,
-                        background: i < idx ? cfg.color : "#E5E7EB",
+                        background: i < idx ? cfg.color : "#E2E8F0",
                         flexShrink: 0,
-                        marginBottom: 20,
+                        marginBottom: 24,
                       }}
                     />
                   )}
@@ -1770,8 +1765,20 @@ function DetailSheet({
             })}
           </div>
         </div>
+
         {/* Kalemler */}
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#64748B",
+              marginBottom: 8,
+              textTransform: "uppercase" as any,
+            }}
+          >
+            Halı Detayları
+          </div>
           {(order.haliKalemleri || []).map((k, i) => {
             const tur = ht.find((t) => t.id === k.turId);
             return (
@@ -1781,21 +1788,23 @@ function DetailSheet({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "10px 12px",
-                  background: "#F8FAFC",
-                  borderRadius: 10,
-                  border: "1px solid #E5E7EB",
-                  marginBottom: 6,
+                  padding: "12px 16px",
+                  background: "#fff",
+                  borderRadius: 12,
+                  border: "1px solid #E2E8F0",
+                  marginBottom: 8,
                 }}
               >
-                <span style={{ fontSize: 14 }}>
+                <span style={{ fontSize: 15, fontWeight: 500 }}>
                   {tur?.icon} {tur?.ad}
                 </span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span style={{ fontSize: 12, color: "#6B7280" }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 13, color: "#64748B" }}>
                     {k.adet}ad · {k.m2}m²
                   </span>
-                  <span style={{ fontWeight: 800, color: "#059669" }}>
+                  <span
+                    style={{ fontWeight: 800, color: "#059669", fontSize: 15 }}
+                  >
                     ₺{tur ? tur.birimFiyat * k.m2 : 0}
                   </span>
                 </div>
@@ -1806,27 +1815,30 @@ function DetailSheet({
             style={{
               display: "flex",
               justifyContent: "space-between",
-              padding: "10px 12px",
+              padding: "14px 16px",
               background: "#EFF6FF",
-              borderRadius: 10,
+              borderRadius: 12,
+              marginTop: 10,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#1E40AF" }}>
-              {toplamAdet(order.haliKalemleri || [])} halı ·{" "}
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E40AF" }}>
+              {toplamAdet(order.haliKalemleri || [])} Halı ·{" "}
               {toplamM2(order.haliKalemleri || [])} m²
             </span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: "#1E40AF" }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "#1E40AF" }}>
               ₺{order.fiyat?.toLocaleString()}
             </span>
           </div>
         </div>
+
         {/* Bilgiler */}
         <div
           style={{
             background: "#F8FAFC",
-            borderRadius: 12,
-            padding: 12,
-            marginBottom: 14,
+            borderRadius: 16,
+            padding: "16px",
+            marginBottom: 20,
+            border: "1px solid #E2E8F0",
           }}
         >
           {[
@@ -1838,39 +1850,46 @@ function DetailSheet({
               key={ic}
               style={{
                 display: "flex",
-                gap: 10,
-                padding: "6px 0",
+                gap: 12,
+                padding: "8px 0",
                 borderBottom: "1px solid #F1F5F9",
               }}
             >
-              <span>{ic}</span>
-              <span style={{ fontSize: 13, color: "#374151" }}>{v}</span>
+              <span style={{ fontSize: 16 }}>{ic}</span>
+              <span style={{ fontSize: 14, color: "#334155", fontWeight: 500 }}>
+                {v}
+              </span>
             </div>
           ))}
           {order.notlar && (
             <div
               style={{
-                marginTop: 8,
+                marginTop: 12,
                 fontSize: 13,
                 color: "#78350F",
                 background: "#FFFBEB",
-                padding: 10,
-                borderRadius: 8,
+                padding: "12px",
+                borderRadius: 10,
+                border: "1px solid #FEF3C7",
               }}
             >
-              📝 {order.notlar}
+              <strong style={{ display: "block", marginBottom: 4 }}>
+                Notlar:
+              </strong>{" "}
+              {order.notlar}
             </div>
           )}
         </div>
+
         {/* Aksiyonlar */}
-        <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ display: "grid", gap: 10 }}>
           <button
             onClick={() => onSmsOpen(order)}
             style={{
-              padding: "14px",
+              padding: "16px",
               borderRadius: 12,
               border: "none",
-              background: "linear-gradient(135deg,#065F46,#059669)",
+              background: "linear-gradient(135deg,#059669,#10B981)",
               color: "#fff",
               cursor: "pointer",
               fontWeight: 700,
@@ -1879,7 +1898,7 @@ function DetailSheet({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: 10,
             }}
           >
             📱 SMS Gönder{" "}
@@ -1888,7 +1907,7 @@ function DetailSheet({
                 style={{
                   background: "rgba(255,255,255,0.25)",
                   borderRadius: 20,
-                  padding: "1px 10px",
+                  padding: "2px 10px",
                   fontSize: 12,
                 }}
               >
@@ -1900,21 +1919,22 @@ function DetailSheet({
             style={{
               display: "grid",
               gridTemplateColumns: idx > 0 ? "1fr 1fr" : "1fr",
-              gap: 8,
+              gap: 10,
             }}
           >
             {idx > 0 && (
               <button
                 onClick={() => onStatusChange(order.id, keys[idx - 1])}
                 style={{
-                  padding: "12px",
+                  padding: "14px",
                   borderRadius: 12,
-                  border: "1.5px solid #E5E7EB",
+                  border: "1.5px solid #E2E8F0",
                   background: "#fff",
                   cursor: "pointer",
                   fontWeight: 600,
                   fontSize: 14,
                   fontFamily: "inherit",
+                  color: "#475569",
                 }}
               >
                 ← Geri Al
@@ -1924,10 +1944,10 @@ function DetailSheet({
               <button
                 onClick={() => onStatusChange(order.id, keys[idx + 1])}
                 style={{
-                  padding: "12px",
+                  padding: "14px",
                   borderRadius: 12,
                   border: "none",
-                  background: "linear-gradient(135deg,#059669,#10B981)",
+                  background: "linear-gradient(135deg,#2563EB,#3B82F6)",
                   color: "#fff",
                   cursor: "pointer",
                   fontWeight: 700,
@@ -1935,25 +1955,26 @@ function DetailSheet({
                   fontFamily: "inherit",
                 }}
               >
-                Sonraki →
+                Sonraki Aşama →
               </button>
             )}
           </div>
           <button
             onClick={() => onEdit(order)}
             style={{
-              padding: "12px",
+              padding: "14px",
               borderRadius: 12,
-              border: "1.5px solid #DBEAFE",
+              border: "1.5px solid #BFDBFE",
               background: "#EFF6FF",
               cursor: "pointer",
               fontWeight: 600,
               fontSize: 14,
               color: "#1D4ED8",
               fontFamily: "inherit",
+              marginTop: 4,
             }}
           >
-            ✏️ Düzenle
+            ✏️ Siparişi Düzenle
           </button>
         </div>
       </div>
@@ -2007,58 +2028,61 @@ function OrderModal({
   );
   const [saving, setSaving] = useState(false);
   const fiyat = hesaplaFiyat(form.haliKalemleri, ht);
+
   const upK = (i: number, f: string, v: any) => {
     const k = [...form.haliKalemleri];
     k[i] = { ...k[i], [f]: f === "m2" || f === "adet" ? +v : v };
     setForm({ ...form, haliKalemleri: k });
   };
+
   const submit = async () => {
     if (!form.musteri || !form.telefon) {
-      alert("Ad ve telefon zorunlu");
+      alert("Ad ve telefon zorunludur.");
       return;
     }
     setSaving(true);
     await onSave({ ...form, fiyat });
     setSaving(false);
   };
+
   const inp: any = {
     width: "100%",
-    padding: "12px",
-    borderRadius: 10,
-    border: "1.5px solid #E5E7EB",
-    fontSize: 15,
+    padding: "14px",
+    borderRadius: 12,
+    border: "1.5px solid #E2E8F0",
+    fontSize: 14,
     outline: "none",
     boxSizing: "border-box",
-    fontFamily: "inherit",
-    background: "#FAFAFA",
+    fontFamily: "'Poppins', sans-serif",
+    background: "#fff",
   };
   const lbl: any = {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 700,
-    color: "#6B7280",
-    marginBottom: 6,
+    color: "#64748B",
+    marginBottom: 8,
     display: "block",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
   };
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.55)",
+        background: "rgba(15,23,42,0.65)",
         display: "flex",
         alignItems: "flex-end",
         justifyContent: "center",
         zIndex: 1000,
+        fontFamily: "'Poppins', sans-serif",
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "#fff",
-          borderRadius: "20px 20px 0 0",
-          padding: "20px 16px 32px",
+          borderRadius: "24px 24px 0 0",
+          padding: "20px 20px 32px",
           width: "100%",
           maxWidth: 600,
           maxHeight: "92vh",
@@ -2070,15 +2094,23 @@ function OrderModal({
           style={{
             width: 40,
             height: 4,
-            background: "#E5E7EB",
+            background: "#E2E8F0",
             borderRadius: 4,
-            margin: "0 auto 16px",
+            margin: "0 auto 20px",
           }}
         />
-        <h2 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 800 }}>
-          {order ? "✏️ Düzenle" : "➕ Yeni Sipariş"}
+        <h2
+          style={{
+            margin: "0 0 20px",
+            fontSize: 22,
+            fontWeight: 800,
+            color: "#0F172A",
+          }}
+        >
+          {order ? "✏️ Siparişi Düzenle" : "➕ Yeni Sipariş Oluştur"}
         </h2>
-        <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+
+        <div style={{ display: "grid", gap: 16, marginBottom: 20 }}>
           <div>
             <label style={lbl}>Müşteri Adı *</label>
             <input
@@ -2107,12 +2139,12 @@ function OrderModal({
               style={inp}
               value={form.adres}
               onChange={(e: any) => setForm({ ...form, adres: e.target.value })}
-              placeholder="Mahalle, İlçe"
+              placeholder="Mahalle, Cadde, Sokak..."
             />
           </div>
           {isAdmin && firmalar.length > 0 && (
             <div>
-              <label style={lbl}>Firma</label>
+              <label style={lbl}>İlgili Firma</label>
               <select
                 style={inp}
                 value={form.firmaId}
@@ -2120,7 +2152,7 @@ function OrderModal({
                   setForm({ ...form, firmaId: e.target.value })
                 }
               >
-                <option value="">— Firma seç —</option>
+                <option value="">— Firma seçin —</option>
                 {firmalar.map((f) => (
                   <option key={f.id} value={f.id}>
                     🏢 {f.ad}
@@ -2130,14 +2162,15 @@ function OrderModal({
             </div>
           )}
         </div>
+
         {/* Halı kalemleri */}
         <div
           style={{
             background: "#F8FAFC",
-            borderRadius: 14,
-            padding: 14,
-            marginBottom: 16,
-            border: "1.5px solid #E5E7EB",
+            borderRadius: 16,
+            padding: "16px",
+            marginBottom: 20,
+            border: "1px solid #E2E8F0",
           }}
         >
           <div
@@ -2145,11 +2178,11 @@ function OrderModal({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 12,
+              marginBottom: 16,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 700 }}>
-              🪄 Halı Kalemleri
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
+              🪄 Halı Detayları
             </span>
             <button
               onClick={() =>
@@ -2159,11 +2192,11 @@ function OrderModal({
                 })
               }
               style={{
-                background: "#DBEAFE",
-                color: "#1D4ED8",
+                background: "#EFF6FF",
+                color: "#2563EB",
                 border: "none",
                 borderRadius: 8,
-                padding: "6px 12px",
+                padding: "8px 14px",
                 cursor: "pointer",
                 fontSize: 13,
                 fontWeight: 700,
@@ -2177,9 +2210,18 @@ function OrderModal({
             const tur = ht.find((t) => t.id === k.turId);
             const sf = tur ? tur.birimFiyat * k.m2 : 0;
             return (
-              <div key={i} style={{ marginBottom: 10 }}>
+              <div
+                key={i}
+                style={{
+                  marginBottom: 16,
+                  background: "#fff",
+                  padding: "12px",
+                  borderRadius: 12,
+                  border: "1px solid #E2E8F0",
+                }}
+              >
                 <select
-                  style={{ ...inp, marginBottom: 6 }}
+                  style={{ ...inp, marginBottom: 10, padding: "10px" }}
                   value={k.turId}
                   onChange={(e: any) => upK(i, "turId", e.target.value)}
                 >
@@ -2193,12 +2235,12 @@ function OrderModal({
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 1fr auto",
-                    gap: 8,
+                    gap: 10,
                     alignItems: "center",
                   }}
                 >
                   <input
-                    style={inp}
+                    style={{ ...inp, padding: "10px" }}
                     type="number"
                     min={1}
                     value={k.adet}
@@ -2206,7 +2248,7 @@ function OrderModal({
                     placeholder="Adet"
                   />
                   <input
-                    style={inp}
+                    style={{ ...inp, padding: "10px" }}
                     type="number"
                     min={0}
                     step={0.5}
@@ -2214,12 +2256,13 @@ function OrderModal({
                     onChange={(e: any) => upK(i, "m2", e.target.value)}
                     placeholder="m²"
                   />
-                  <div style={{ textAlign: "center" as any }}>
+                  <div style={{ textAlign: "center" as any, padding: "0 8px" }}>
                     <div
                       style={{
                         fontWeight: 800,
-                        fontSize: 14,
+                        fontSize: 15,
                         color: sf > 0 ? "#059669" : "#CBD5E1",
+                        marginBottom: 4,
                       }}
                     >
                       {sf > 0 ? `₺${sf}` : "—"}
@@ -2235,14 +2278,12 @@ function OrderModal({
                           });
                       }}
                       style={{
-                        background: "#FEE2E2",
+                        background: "transparent",
                         border: "none",
-                        borderRadius: 6,
-                        padding: "3px 8px",
                         cursor: "pointer",
-                        fontSize: 11,
+                        fontSize: 12,
                         color: "#DC2626",
-                        marginTop: 4,
+                        fontWeight: 600,
                       }}
                     >
                       Sil
@@ -2256,22 +2297,23 @@ function OrderModal({
             style={{
               display: "flex",
               justifyContent: "space-between",
-              paddingTop: 10,
-              borderTop: "2px dashed #E5E7EB",
+              paddingTop: 12,
+              borderTop: "2px dashed #E2E8F0",
             }}
           >
-            <span style={{ fontSize: 13, color: "#6B7280" }}>
+            <span style={{ fontSize: 13, color: "#64748B", fontWeight: 500 }}>
               {toplamAdet(form.haliKalemleri)} adet ·{" "}
               {toplamM2(form.haliKalemleri)} m²
             </span>
-            <span style={{ fontWeight: 800, fontSize: 16, color: "#1E40AF" }}>
+            <span style={{ fontWeight: 800, fontSize: 18, color: "#1E40AF" }}>
               ₺{fiyat.toLocaleString()}
             </span>
           </div>
         </div>
-        <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+
+        <div style={{ display: "grid", gap: 16, marginBottom: 24 }}>
           <div>
-            <label style={lbl}>Durum</label>
+            <label style={lbl}>Sipariş Durumu</label>
             <select
               style={inp}
               value={form.durum}
@@ -2285,14 +2327,14 @@ function OrderModal({
             </select>
           </div>
           <div>
-            <label style={lbl}>Notlar</label>
+            <label style={lbl}>Notlar / Özel İstekler</label>
             <textarea
-              style={{ ...inp, minHeight: 80, resize: "vertical" as any }}
+              style={{ ...inp, minHeight: 100, resize: "vertical" as any }}
               value={form.notlar}
               onChange={(e: any) =>
                 setForm({ ...form, notlar: e.target.value })
               }
-              placeholder="Özel istekler..."
+              placeholder="Eklemek istediğiniz notlar..."
             />
           </div>
         </div>
@@ -2301,12 +2343,12 @@ function OrderModal({
           disabled={saving}
           style={{
             width: "100%",
-            padding: "15px",
+            padding: "16px",
             borderRadius: 12,
             border: "none",
             background: saving
               ? "#93C5FD"
-              : "linear-gradient(135deg,#1E40AF,#3B82F6)",
+              : "linear-gradient(135deg,#2563EB,#3B82F6)",
             color: "#fff",
             cursor: saving ? "not-allowed" : "pointer",
             fontWeight: 800,
@@ -2314,7 +2356,7 @@ function OrderModal({
             fontFamily: "inherit",
           }}
         >
-          {saving ? "Kaydediliyor..." : "Kaydet"}
+          {saving ? "Kaydediliyor..." : "Siparişi Kaydet"}
         </button>
       </div>
     </div>
@@ -2349,6 +2391,7 @@ export default function App() {
     msg: null,
     type: "success",
   });
+
   const [ht, setHt] = useState<HaliTuru[]>(() => {
     try {
       const s = localStorage.getItem("t360_ht");
@@ -2452,7 +2495,7 @@ export default function App() {
         ? form.firmaId
         : firmalar.find((f) => f.email === user?.email)?.id;
       await dbKaydet(form, editing?.id || null, ht, user!.token, firmaId);
-      showToast(editing ? "Güncellendi" : "Sipariş oluşturuldu");
+      showToast(editing ? "Sipariş güncellendi" : "Sipariş oluşturuldu");
       await yukle();
       setShowOrder(false);
       setEditing(null);
@@ -2468,9 +2511,9 @@ export default function App() {
         prev.map((o) => (o.id === id ? { ...o, durum: ns } : o))
       );
       setSel((prev) => (prev?.id === id ? { ...prev, durum: ns } : prev));
-      showToast(`${STATUS_CONFIG[ns].icon} ${STATUS_CONFIG[ns].label}`);
+      showToast(`${STATUS_CONFIG[ns].icon} Durum: ${STATUS_CONFIG[ns].label}`);
     } catch {
-      showToast("Hata", "error");
+      showToast("Bir hata oluştu", "error");
     }
   };
 
@@ -2485,22 +2528,22 @@ export default function App() {
       setOrders((prev) =>
         prev.map((o) => (o.id === smsOrder.id ? { ...o, smsDurum: nd } : o))
       );
-      showToast("SMS logu kaydedildi");
+      showToast("SMS başarıyla loglandı");
     } catch {
-      showToast("Hata", "error");
+      showToast("SMS loglanırken hata oluştu", "error");
     }
   };
 
   const aktifFiltre =
     (filterStatus !== "Tümü" ? 1 : 0) + (filterFirma !== "Tümü" ? 1 : 0);
 
-  // ── AUTH EKRANLARI ──
+  // ─── EKRAN YÖNLENDİRMELERİ ───
   if (authState === "loading")
     return (
       <div
         style={{
           minHeight: "100vh",
-          background: "#0F172A",
+          background: "#F8FAFC",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -2510,8 +2553,8 @@ export default function App() {
           style={{
             width: 40,
             height: 40,
-            border: "3px solid #1E3A5F",
-            borderTop: "3px solid #06B6D4",
+            border: "3px solid #E2E8F0",
+            borderTop: "3px solid #3B82F6",
             borderRadius: "50%",
             animation: "spin 0.8s linear infinite",
           }}
@@ -2536,23 +2579,49 @@ export default function App() {
       />
     );
 
+  // ─── ANA EKRAN RENDER ───
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "#F1F5F9",
-        fontFamily: "'DM Sans','Segoe UI',sans-serif",
+        background: "#F8FAFC",
+        fontFamily: "'Poppins', sans-serif",
         maxWidth: "100vw",
         overflowX: "hidden",
+        color: "#0F172A",
       }}
     >
       <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet"
       />
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
         * { box-sizing: border-box; }
+        
+        /* Modern SaaS Tasarım Sınıfları */
+        .saas-card {
+          background: #fff;
+          border-radius: 16px;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .saas-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+        }
+        
+        .modern-table { width: 100%; border-collapse: collapse; }
+        .modern-table th {
+          background: #F1F5F9; color: #64748B; font-weight: 600;
+          text-transform: uppercase; letter-spacing: 0.5px; font-size: 11px;
+          padding: 16px; text-align: left; border-bottom: 2px solid #E2E8F0;
+        }
+        .modern-table td { padding: 16px; border-bottom: 1px solid #F1F5F9; font-size: 13px; color: #334155; }
+        .modern-table tr { transition: background 0.2s ease; }
+        .modern-table tr:hover { background: #F8FAFC; }
+
         @media (min-width: 768px) {
           .stat-grid { grid-template-columns: repeat(5, 1fr) !important; }
           .order-card { display: none !important; }
@@ -2572,95 +2641,142 @@ export default function App() {
       {/* HEADER */}
       <div
         style={{
-          background: "linear-gradient(135deg,#0F172A,#0F3460)",
-          padding: "0 16px",
+          background: "rgba(15, 23, 42, 0.98)",
+          backdropFilter: "blur(10px)",
+          padding: "0 20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          height: 60,
+          height: 70,
           position: "sticky",
           top: 0,
           zIndex: 100,
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
             style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: "linear-gradient(135deg,#06B6D4,#3B82F6)",
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: "linear-gradient(135deg, #ffffff 0%, #F8FAFC 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 18,
-              flexShrink: 0,
+              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
             }}
           >
-            🧹
+            <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+              <defs>
+                <linearGradient
+                  id="layer-cyan-sm"
+                  x1="0%"
+                  y1="100%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" stopColor="#06B6D4" />
+                  <stop offset="100%" stopColor="#2563EB" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M16 4L28 10.5L16 17L4 10.5L16 4Z"
+                fill="url(#layer-cyan-sm)"
+                fillOpacity="0.2"
+                stroke="url(#layer-cyan-sm)"
+                strokeWidth="2.5"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M4 16L16 22.5L28 16"
+                stroke="#3B82F6"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M4 21.5L16 28L28 21.5"
+                stroke="#94A3B8"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
           <div>
             <div
               style={{
                 color: "#fff",
                 fontWeight: 800,
-                fontSize: 16,
+                fontSize: "18px",
                 lineHeight: 1,
+                letterSpacing: "-0.5px",
               }}
             >
-              Temiz360
+              HalıPro <span style={{ color: "#3B82F6" }}>.</span>
             </div>
-            <div style={{ color: "#475569", fontSize: 10 }}>
-              {isAdmin ? "👑 Admin" : user?.email}
+            <div
+              style={{
+                color: "#94A3B8",
+                fontSize: "11px",
+                marginTop: "2px",
+                fontWeight: 500,
+              }}
+            >
+              {isAdmin ? "👑 Yönetici Paneli" : user?.email}
             </div>
           </div>
         </div>
+
         <div
           className="header-tabs"
           style={{
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: 12,
-            padding: 4,
+            background: "rgba(255,255,255,0.06)",
+            borderRadius: "12px",
+            padding: "4px",
             display: "none",
+            border: "1px solid rgba(255,255,255,0.05)",
           }}
         >
           {[
             ["siparisler", "📋 Siparişler"],
-            ["fiyatlar", "🏷️ Fiyatlar"],
+            ["fiyatlar", "🏷️ Fiyat Listesi"],
           ].map(([k, l]) => (
             <button
               key={k}
               onClick={() => setActiveTab(k)}
               style={{
-                padding: "7px 16px",
-                borderRadius: 10,
+                padding: "8px 20px",
+                borderRadius: "8px",
                 border: "none",
                 background: activeTab === k ? "#fff" : "transparent",
-                color: activeTab === k ? "#1E40AF" : "#94A3B8",
+                color: activeTab === k ? "#0F172A" : "#94A3B8",
                 fontWeight: activeTab === k ? 700 : 500,
-                fontSize: 13,
+                fontSize: "13px",
                 cursor: "pointer",
                 fontFamily: "inherit",
+                transition: "all 0.2s",
               }}
             >
               {l}
             </button>
           ))}
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+
+        <div style={{ display: "flex", gap: "8px" }}>
           {isAdmin && (
             <button
               onClick={() => setShowFirma(true)}
               style={{
                 background: "rgba(255,255,255,0.08)",
-                color: "#94A3B8",
+                color: "#fff",
                 border: "none",
-                borderRadius: 8,
-                padding: "0 10px",
-                height: 34,
+                borderRadius: "10px",
+                padding: "0 12px",
+                height: "38px",
                 cursor: "pointer",
-                fontSize: 12,
-                fontFamily: "inherit",
+                fontSize: "14px",
               }}
             >
               🏢
@@ -2670,13 +2786,13 @@ export default function App() {
             onClick={yukle}
             style={{
               background: "rgba(255,255,255,0.08)",
-              color: "#94A3B8",
+              color: "#fff",
               border: "none",
-              borderRadius: 8,
-              width: 34,
-              height: 34,
+              borderRadius: "10px",
+              width: "38px",
+              height: "38px",
               cursor: "pointer",
-              fontSize: 16,
+              fontSize: "16px",
             }}
           >
             ⟳
@@ -2684,14 +2800,15 @@ export default function App() {
           <button
             onClick={handleLogout}
             style={{
-              background: "rgba(255,255,255,0.08)",
+              background: "transparent",
               color: "#94A3B8",
-              border: "none",
-              borderRadius: 8,
-              padding: "0 10px",
-              height: 34,
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "10px",
+              padding: "0 12px",
+              height: "38px",
               cursor: "pointer",
-              fontSize: 12,
+              fontSize: "13px",
+              fontWeight: 500,
               fontFamily: "inherit",
             }}
           >
@@ -2703,19 +2820,20 @@ export default function App() {
               setShowOrder(true);
             }}
             style={{
-              background: "linear-gradient(135deg,#06B6D4,#3B82F6)",
+              background: "linear-gradient(135deg,#3B82F6,#2563EB)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
-              padding: "0 12px",
-              height: 34,
+              borderRadius: "10px",
+              padding: "0 16px",
+              height: "38px",
               cursor: "pointer",
               fontWeight: 700,
-              fontSize: 13,
+              fontSize: "13px",
               fontFamily: "inherit",
+              boxShadow: "0 4px 10px rgba(37, 99, 235, 0.3)",
             }}
           >
-            + Ekle
+            + Yeni Sipariş
           </button>
         </div>
       </div>
@@ -2723,86 +2841,97 @@ export default function App() {
       {err && (
         <div
           style={{
-            margin: "12px 16px",
-            padding: "12px 16px",
-            background: "#FEE2E2",
-            borderRadius: 12,
-            color: "#DC2626",
-            fontSize: 13,
+            margin: "20px",
+            padding: "16px 20px",
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            borderRadius: "12px",
+            color: "#B91C1C",
+            fontSize: "14px",
             fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          ❌ {err}{" "}
+          <span>🚨 {err}</span>
           <button
             onClick={yukle}
             style={{
-              marginLeft: 8,
               background: "#DC2626",
               color: "#fff",
               border: "none",
-              borderRadius: 6,
-              padding: "3px 10px",
+              borderRadius: "8px",
+              padding: "6px 16px",
               cursor: "pointer",
-              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: "inherit",
+              fontSize: "13px",
             }}
           >
-            Tekrar
+            Tekrar Dene
           </button>
         </div>
       )}
 
-      {/* FİYAT LİSTESİ */}
+      {/* FİYATLAR SEKMESİ */}
       {activeTab === "fiyatlar" && (
-        <div style={{ padding: 16, paddingBottom: 80 }}>
+        <div
+          style={{
+            padding: "24px",
+            paddingBottom: "100px",
+            maxWidth: "800px",
+            margin: "0 auto",
+          }}
+        >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: 16,
+              marginBottom: 20,
             }}
           >
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
-              Halı Fiyatları
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
+              Halı Türleri ve Fiyatlar
             </h2>
             <button
               onClick={() => setShowHali(true)}
               style={{
                 background: "#EFF6FF",
-                color: "#1D4ED8",
-                border: "1.5px solid #BFDBFE",
+                color: "#2563EB",
+                border: "1px solid #BFDBFE",
                 borderRadius: 10,
-                padding: "8px 14px",
+                padding: "10px 16px",
                 cursor: "pointer",
                 fontWeight: 700,
                 fontSize: 13,
                 fontFamily: "inherit",
               }}
             >
-              ✏️ Düzenle
+              ✏️ Fiyatları Düzenle
             </button>
           </div>
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             {ht.map((t) => (
               <div
                 key={t.id}
+                className="saas-card"
                 style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  padding: "14px 16px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  padding: "16px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <div
                     style={{
-                      width: 44,
-                      height: 44,
+                      width: 48,
+                      height: 48,
                       borderRadius: 12,
-                      background: "#F1F5F9",
+                      background: "#F8FAFC",
+                      border: "1px solid #E2E8F0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -2811,13 +2940,13 @@ export default function App() {
                   >
                     {t.icon}
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{t.ad}</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{t.ad}</div>
                 </div>
                 <div
                   style={{
                     background: "#EFF6FF",
-                    borderRadius: 10,
-                    padding: "6px 14px",
+                    borderRadius: 12,
+                    padding: "8px 16px",
                     textAlign: "center" as any,
                   }}
                 >
@@ -2827,9 +2956,9 @@ export default function App() {
                     ₺{t.birimFiyat}
                   </div>
                   <div
-                    style={{ fontSize: 10, color: "#3B82F6", fontWeight: 700 }}
+                    style={{ fontSize: 11, color: "#3B82F6", fontWeight: 700 }}
                   >
-                    /m²
+                    m² Fiyatı
                   </div>
                 </div>
               </div>
@@ -2838,73 +2967,83 @@ export default function App() {
         </div>
       )}
 
-      {/* SİPARİŞLER */}
+      {/* SİPARİŞLER SEKMESİ */}
       {activeTab === "siparisler" && (
-        <div style={{ padding: 16, paddingBottom: 90 }}>
-          {/* Stats */}
+        <div
+          style={{
+            padding: "24px",
+            paddingBottom: "100px",
+            maxWidth: "1400px",
+            margin: "0 auto",
+          }}
+        >
           <div
             className="stat-grid"
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(2,1fr)",
-              gap: 10,
-              marginBottom: 16,
+              gap: "16px",
+              marginBottom: "24px",
             }}
           >
             {[
               {
-                label: "Toplam",
+                label: "Toplam Sipariş",
                 value: loading ? "…" : stats.toplam,
                 icon: "📋",
-                bg: "#DBEAFE",
+                bg: "#EFF6FF",
+                col: "#3B82F6",
               },
               {
                 label: "Bekleyen",
                 value: loading ? "…" : stats.bekleyen,
                 icon: "⏳",
-                bg: "#FEF3C7",
+                bg: "#FFFBEB",
+                col: "#F59E0B",
               },
               {
                 label: "Hazır",
                 value: loading ? "…" : stats.hazır,
                 icon: "✅",
-                bg: "#D1FAE5",
+                bg: "#ECFDF5",
+                col: "#10B981",
               },
               {
                 label: "Dağıtımda",
                 value: loading ? "…" : stats.dagitimda,
                 icon: "🏍️",
-                bg: "#FFEDD5",
+                bg: "#FFF7ED",
+                col: "#F97316",
               },
               {
                 label: "Aktif Ciro",
                 value: loading ? "…" : `₺${stats.ciro.toLocaleString()}`,
                 icon: "💰",
-                bg: "#EDE9FE",
+                bg: "#F5F3FF",
+                col: "#8B5CF6",
               },
             ].map((s) => (
               <div
                 key={s.label}
+                className="saas-card"
                 style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  padding: "12px 14px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  padding: "20px",
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: "16px",
                 }}
               >
                 <div
                   style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "14px",
                     background: s.bg,
+                    color: s.col,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 18,
+                    fontSize: "24px",
                     flexShrink: 0,
                   }}
                 >
@@ -2913,15 +3052,22 @@ export default function App() {
                 <div>
                   <div
                     style={{
-                      fontSize: 18,
+                      fontSize: "24px",
                       fontWeight: 800,
                       color: "#0F172A",
                       lineHeight: 1,
+                      marginBottom: "4px",
                     }}
                   >
                     {s.value}
                   </div>
-                  <div style={{ fontSize: 11, color: "#64748B" }}>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#64748B",
+                      fontWeight: 500,
+                    }}
+                  >
                     {s.label}
                   </div>
                 </div>
@@ -2929,49 +3075,65 @@ export default function App() {
             ))}
           </div>
 
-          {/* Arama & Filtre */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-            <input
-              value={search}
-              onChange={(e: any) => setSearch(e.target.value)}
-              placeholder="🔍 Ara..."
-              style={{
-                flex: 1,
-                padding: "10px 14px",
-                borderRadius: 12,
-                border: "1.5px solid #E5E7EB",
-                fontSize: 14,
-                outline: "none",
-                fontFamily: "inherit",
-                background: "#fff",
-              }}
-            />
+          <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ flex: 1, position: "relative" }}>
+              <span
+                style={{
+                  position: "absolute",
+                  left: "14px",
+                  top: "12px",
+                  fontSize: "16px",
+                  opacity: 0.5,
+                }}
+              >
+                🔍
+              </span>
+              <input
+                value={search}
+                onChange={(e: any) => setSearch(e.target.value)}
+                placeholder="Müşteri, telefon veya sipariş no ara..."
+                style={{
+                  width: "100%",
+                  padding: "12px 14px 12px 40px",
+                  borderRadius: "12px",
+                  border: "1px solid #E2E8F0",
+                  fontSize: "14px",
+                  outline: "none",
+                  fontFamily: "inherit",
+                  background: "#fff",
+                  transition: "all 0.2s",
+                }}
+                onFocus={(e: any) => (e.target.style.borderColor = "#3B82F6")}
+                onBlur={(e: any) => (e.target.style.borderColor = "#E2E8F0")}
+              />
+            </div>
             <button
               onClick={() => setShowFilter(!showFilter)}
               style={{
-                background: aktifFiltre > 0 ? "#DBEAFE" : "#fff",
-                border: `1.5px solid ${
-                  aktifFiltre > 0 ? "#3B82F6" : "#E5E7EB"
-                }`,
-                borderRadius: 12,
-                padding: "0 14px",
+                background: aktifFiltre > 0 ? "#EFF6FF" : "#fff",
+                border: `1px solid ${aktifFiltre > 0 ? "#BFDBFE" : "#E2E8F0"}`,
+                borderRadius: "12px",
+                padding: "0 20px",
                 cursor: "pointer",
-                fontWeight: 700,
-                fontSize: 13,
-                color: aktifFiltre > 0 ? "#1D4ED8" : "#374151",
+                fontWeight: 600,
+                fontSize: "14px",
+                color: aktifFiltre > 0 ? "#1D4ED8" : "#475569",
                 fontFamily: "inherit",
                 flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
               }}
             >
-              🔽{" "}
+              Filtrele{" "}
               {aktifFiltre > 0 && (
                 <span
                   style={{
                     background: "#3B82F6",
                     color: "#fff",
-                    borderRadius: 10,
-                    padding: "1px 6px",
-                    fontSize: 11,
+                    borderRadius: "10px",
+                    padding: "2px 8px",
+                    fontSize: "11px",
                   }}
                 >
                   {aktifFiltre}
@@ -2982,21 +3144,16 @@ export default function App() {
 
           {showFilter && (
             <div
-              style={{
-                background: "#fff",
-                borderRadius: 12,
-                padding: 14,
-                marginBottom: 12,
-                border: "1.5px solid #E5E7EB",
-              }}
+              className="saas-card"
+              style={{ padding: "20px", marginBottom: "20px" }}
             >
               <div
                 style={{
-                  fontSize: 11,
+                  fontSize: "12px",
                   fontWeight: 700,
-                  color: "#6B7280",
-                  marginBottom: 8,
-                  textTransform: "uppercase" as any,
+                  color: "#64748B",
+                  marginBottom: "12px",
+                  textTransform: "uppercase",
                 }}
               >
                 Durum
@@ -3004,9 +3161,9 @@ export default function App() {
               <div
                 style={{
                   display: "flex",
-                  gap: 6,
-                  flexWrap: "wrap" as any,
-                  marginBottom: isAdmin && firmalar.length > 0 ? 12 : 0,
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  marginBottom: isAdmin && firmalar.length > 0 ? "20px" : 0,
                 }}
               >
                 {STATUSLAR.map((s) => {
@@ -3017,18 +3174,18 @@ export default function App() {
                       key={s}
                       onClick={() => setFilterStatus(s)}
                       style={{
-                        padding: "6px 12px",
-                        borderRadius: 20,
-                        border: "1.5px solid",
-                        borderColor: active
-                          ? cfg?.color || "#1E40AF"
-                          : "#E5E7EB",
-                        background: active ? cfg?.bg || "#DBEAFE" : "#fff",
-                        color: active ? cfg?.color || "#1E40AF" : "#6B7280",
+                        padding: "8px 16px",
+                        borderRadius: "20px",
+                        border: `1px solid ${
+                          active ? cfg?.color || "#1E40AF" : "#E2E8F0"
+                        }`,
+                        background: active ? cfg?.bg || "#EFF6FF" : "#fff",
+                        color: active ? cfg?.color || "#1E40AF" : "#64748B",
                         cursor: "pointer",
                         fontWeight: 600,
-                        fontSize: 12,
+                        fontSize: "13px",
                         fontFamily: "inherit",
+                        transition: "all 0.2s",
                       }}
                     >
                       {cfg ? `${cfg.icon} ${cfg.label}` : "Tümü"}
@@ -3040,31 +3197,31 @@ export default function App() {
                 <>
                   <div
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 700,
-                      color: "#6B7280",
-                      marginBottom: 8,
+                      color: "#64748B",
+                      marginBottom: 12,
                       textTransform: "uppercase" as any,
                     }}
                   >
                     Firma
                   </div>
                   <div
-                    style={{ display: "flex", gap: 6, flexWrap: "wrap" as any }}
+                    style={{ display: "flex", gap: 8, flexWrap: "wrap" as any }}
                   >
                     <button
                       onClick={() => setFilterFirma("Tümü")}
                       style={{
-                        padding: "6px 12px",
+                        padding: "8px 16px",
                         borderRadius: 20,
-                        border: `1.5px solid ${
-                          filterFirma === "Tümü" ? "#1E40AF" : "#E5E7EB"
+                        border: `1px solid ${
+                          filterFirma === "Tümü" ? "#1E40AF" : "#E2E8F0"
                         }`,
-                        background: filterFirma === "Tümü" ? "#DBEAFE" : "#fff",
-                        color: filterFirma === "Tümü" ? "#1E40AF" : "#6B7280",
+                        background: filterFirma === "Tümü" ? "#EFF6FF" : "#fff",
+                        color: filterFirma === "Tümü" ? "#1E40AF" : "#64748B",
                         cursor: "pointer",
                         fontWeight: 600,
-                        fontSize: 12,
+                        fontSize: 13,
                         fontFamily: "inherit",
                       }}
                     >
@@ -3075,16 +3232,16 @@ export default function App() {
                         key={f.id}
                         onClick={() => setFilterFirma(f.id)}
                         style={{
-                          padding: "6px 12px",
+                          padding: "8px 16px",
                           borderRadius: 20,
-                          border: `1.5px solid ${
-                            filterFirma === f.id ? "#1E40AF" : "#E5E7EB"
+                          border: `1px solid ${
+                            filterFirma === f.id ? "#1E40AF" : "#E2E8F0"
                           }`,
-                          background: filterFirma === f.id ? "#DBEAFE" : "#fff",
-                          color: filterFirma === f.id ? "#1E40AF" : "#6B7280",
+                          background: filterFirma === f.id ? "#EFF6FF" : "#fff",
+                          color: filterFirma === f.id ? "#1E40AF" : "#64748B",
                           cursor: "pointer",
                           fontWeight: 600,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontFamily: "inherit",
                         }}
                       >
@@ -3097,7 +3254,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Mobil kartlar */}
+          {/* MOBİL GÖRÜNÜM KARTLARI */}
           <div className="order-card" style={{ display: "none" }}>
             {loading ? (
               <div style={{ padding: 40, textAlign: "center" as any }}>
@@ -3105,14 +3262,14 @@ export default function App() {
                   style={{
                     width: 32,
                     height: 32,
-                    border: "3px solid #E5E7EB",
+                    border: "3px solid #E2E8F0",
                     borderTop: "3px solid #3B82F6",
                     borderRadius: "50%",
                     animation: "spin 0.8s linear infinite",
                     margin: "0 auto 10px",
                   }}
                 />
-                <div style={{ color: "#6B7280", fontSize: 14 }}>
+                <div style={{ color: "#64748B", fontSize: 14 }}>
                   Yükleniyor...
                 </div>
               </div>
@@ -3121,15 +3278,13 @@ export default function App() {
                 style={{
                   padding: 40,
                   textAlign: "center" as any,
-                  color: "#9CA3AF",
+                  color: "#94A3B8",
                 }}
               >
-                {orders.length === 0
-                  ? "Henüz sipariş yok."
-                  : "Sonuç bulunamadı."}
+                Sonuç bulunamadı.
               </div>
             ) : (
-              <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "grid", gap: 12 }}>
                 {filtered.map((order) => {
                   const smsSayisi = Object.values(order.smsDurum || {}).filter(
                     Boolean
@@ -3138,16 +3293,14 @@ export default function App() {
                     <div
                       key={order.id}
                       onClick={() => setSel(order)}
+                      className="saas-card"
                       style={{
-                        background: "#fff",
-                        borderRadius: 14,
-                        padding: "14px 16px",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                        padding: "16px",
                         cursor: "pointer",
                         border:
                           sel?.id === order.id
                             ? "2px solid #3B82F6"
-                            : "2px solid transparent",
+                            : "1px solid #E2E8F0",
                       }}
                     >
                       <div
@@ -3155,7 +3308,7 @@ export default function App() {
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "flex-start",
-                          marginBottom: 8,
+                          marginBottom: 12,
                         }}
                       >
                         <div>
@@ -3171,8 +3324,8 @@ export default function App() {
                           <div
                             style={{
                               fontSize: 12,
-                              color: "#9CA3AF",
-                              marginTop: 2,
+                              color: "#64748B",
+                              marginTop: 4,
                             }}
                           >
                             {order.id} · {order.telefon}
@@ -3187,8 +3340,8 @@ export default function App() {
                         style={{
                           display: "flex",
                           flexWrap: "wrap" as any,
-                          gap: 4,
-                          marginBottom: 8,
+                          gap: 6,
+                          marginBottom: 12,
                         }}
                       >
                         {(order.haliKalemleri || []).map((k, i) => {
@@ -3197,11 +3350,13 @@ export default function App() {
                             <span
                               key={i}
                               style={{
-                                fontSize: 12,
-                                background: "#F1F5F9",
-                                color: "#374151",
-                                padding: "3px 8px",
+                                fontSize: 11,
+                                background: "#F8FAFC",
+                                border: "1px solid #E2E8F0",
+                                color: "#475569",
+                                padding: "4px 8px",
                                 borderRadius: 6,
+                                fontWeight: 500,
                               }}
                             >
                               {tur?.icon} {tur?.ad} · {k.m2}m²
@@ -3214,6 +3369,8 @@ export default function App() {
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
+                          borderTop: "1px solid #F1F5F9",
+                          paddingTop: 12,
                         }}
                       >
                         <span
@@ -3228,7 +3385,7 @@ export default function App() {
                         <div
                           style={{
                             display: "flex",
-                            gap: 6,
+                            gap: 8,
                             alignItems: "center",
                           }}
                         >
@@ -3236,8 +3393,8 @@ export default function App() {
                             <span
                               style={{
                                 fontSize: 11,
-                                background: "#D1FAE5",
-                                color: "#065F46",
+                                background: "#ECFDF5",
+                                color: "#059669",
                                 padding: "2px 8px",
                                 borderRadius: 6,
                                 fontWeight: 700,
@@ -3246,7 +3403,7 @@ export default function App() {
                               📱{smsSayisi}
                             </span>
                           )}
-                          <span style={{ fontSize: 12, color: "#9CA3AF" }}>
+                          <span style={{ fontSize: 12, color: "#94A3B8" }}>
                             {order.tarih}
                           </span>
                         </div>
@@ -3258,24 +3415,15 @@ export default function App() {
             )}
           </div>
 
-          {/* Masaüstü tablo */}
-          <div
-            className="order-table"
-            style={{
-              display: "none",
-              background: "#fff",
-              borderRadius: 16,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              overflow: "hidden",
-            }}
-          >
+          {/* MASAÜSTÜ TABLO GÖRÜNÜMÜ */}
+          <div className="order-table saas-card" style={{ overflow: "hidden" }}>
             {loading ? (
-              <div style={{ padding: 60, textAlign: "center" as any }}>
+              <div style={{ padding: "60px", textAlign: "center" }}>
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
-                    border: "3px solid #E5E7EB",
+                    width: "40px",
+                    height: "40px",
+                    border: "3px solid #E2E8F0",
                     borderTop: "3px solid #3B82F6",
                     borderRadius: "50%",
                     animation: "spin 0.8s linear infinite",
@@ -3284,43 +3432,23 @@ export default function App() {
                 />
               </div>
             ) : (
-              <table
-                style={{ width: "100%", borderCollapse: "collapse" as any }}
-              >
+              <table className="modern-table">
                 <thead>
-                  <tr
-                    style={{
-                      background: "#F8FAFC",
-                      borderBottom: "2px solid #E5E7EB",
-                    }}
-                  >
+                  <tr>
                     {[
                       "No",
-                      "Müşteri",
+                      "Müşteri Bilgisi",
                       "Firma",
-                      "Halı Kalemleri",
-                      "Toplam",
+                      "Halı Detayı",
+                      "Tutar",
                       "Durum",
                       "SMS",
                       "Tarih",
-                      "",
+                      "İşlem",
                     ]
                       .filter((h) => isAdmin || h !== "Firma")
                       .map((h) => (
-                        <th
-                          key={h}
-                          style={{
-                            padding: "11px 14px",
-                            textAlign: "left" as any,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: "#64748B",
-                            textTransform: "uppercase" as any,
-                            whiteSpace: "nowrap" as any,
-                          }}
-                        >
-                          {h}
-                        </th>
+                        <th key={h}>{h}</th>
                       ))}
                   </tr>
                 </thead>
@@ -3330,18 +3458,16 @@ export default function App() {
                       <td
                         colSpan={9}
                         style={{
-                          padding: 40,
-                          textAlign: "center" as any,
-                          color: "#9CA3AF",
+                          padding: "40px",
+                          textAlign: "center",
+                          color: "#94A3B8",
                         }}
                       >
-                        {orders.length === 0
-                          ? "Henüz sipariş yok."
-                          : "Sonuç bulunamadı."}
+                        Sonuç bulunamadı.
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((order, i) => {
+                    filtered.map((order) => {
                       const smsSayisi = Object.values(
                         order.smsDurum || {}
                       ).filter(Boolean).length;
@@ -3350,48 +3476,61 @@ export default function App() {
                           key={order.id}
                           onClick={() => setSel(order)}
                           style={{
-                            borderBottom: "1px solid #F1F5F9",
                             cursor: "pointer",
                             background:
-                              sel?.id === order.id
-                                ? "#EFF6FF"
-                                : i % 2 === 0
-                                ? "#fff"
-                                : "#FAFAFA",
+                              sel?.id === order.id ? "#F8FAFC" : "#fff",
                           }}
                         >
-                          <td style={{ padding: "12px 14px" }}>
+                          <td>
                             <span
                               style={{
                                 fontWeight: 700,
-                                color: "#1E40AF",
-                                fontSize: 13,
+                                color: "#475569",
+                                fontSize: "12px",
+                                background: "#F1F5F9",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
                               }}
                             >
                               {order.id}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 14px" }}>
-                            <div style={{ fontWeight: 600 }}>
+                          <td>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                color: "#0F172A",
+                                marginBottom: "2px",
+                              }}
+                            >
                               {order.musteri}
                             </div>
-                            <div style={{ fontSize: 11, color: "#9CA3AF" }}>
+                            <div style={{ fontSize: "12px", color: "#64748B" }}>
                               {order.telefon}
                             </div>
                           </td>
                           {isAdmin && (
-                            <td style={{ padding: "12px 14px" }}>
-                              <span style={{ fontSize: 12, color: "#6B7280" }}>
-                                {order.firmaAd || "—"}
+                            <td>
+                              <span
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#475569",
+                                  background: "#F8FAFC",
+                                  padding: "4px 8px",
+                                  border: "1px solid #E2E8F0",
+                                  borderRadius: "6px",
+                                }}
+                              >
+                                🏢 {order.firmaAd || "Bireysel"}
                               </span>
                             </td>
                           )}
-                          <td style={{ padding: "12px 14px" }}>
+                          <td>
                             <div
                               style={{
                                 display: "flex",
-                                flexWrap: "wrap" as any,
-                                gap: 4,
+                                flexWrap: "wrap",
+                                gap: "6px",
                               }}
                             >
                               {(order.haliKalemleri || []).map((k, ki) => {
@@ -3400,11 +3539,13 @@ export default function App() {
                                   <span
                                     key={ki}
                                     style={{
-                                      fontSize: 11,
-                                      background: "#F1F5F9",
-                                      color: "#374151",
-                                      padding: "2px 8px",
-                                      borderRadius: 6,
+                                      fontSize: "11px",
+                                      background: "#F8FAFC",
+                                      border: "1px solid #E2E8F0",
+                                      color: "#475569",
+                                      padding: "4px 8px",
+                                      borderRadius: "6px",
+                                      fontWeight: 500,
                                     }}
                                   >
                                     {tur?.icon} {tur?.ad} · {k.m2}m²
@@ -3413,27 +3554,34 @@ export default function App() {
                               })}
                             </div>
                           </td>
-                          <td style={{ padding: "12px 14px" }}>
-                            <span style={{ fontWeight: 800, color: "#059669" }}>
+                          <td>
+                            <span
+                              style={{
+                                fontWeight: 800,
+                                color: "#059669",
+                                fontSize: "15px",
+                              }}
+                            >
                               ₺{order.fiyat?.toLocaleString()}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 14px" }}>
+                          <td>
                             <StatusBadge durum={order.durum} />
                           </td>
-                          <td style={{ padding: "12px 14px" }}>
+                          <td>
                             {smsSayisi > 0 ? (
                               <span
                                 style={{
-                                  fontSize: 11,
-                                  background: "#D1FAE5",
-                                  color: "#065F46",
-                                  padding: "2px 8px",
-                                  borderRadius: 6,
+                                  fontSize: "11px",
+                                  background: "#ECFDF5",
+                                  border: "1px solid #A7F3D0",
+                                  color: "#059669",
+                                  padding: "4px 8px",
+                                  borderRadius: "6px",
                                   fontWeight: 700,
                                 }}
                               >
-                                📱{smsSayisi}
+                                📱 {smsSayisi}
                               </span>
                             ) : (
                               <span style={{ color: "#CBD5E1" }}>—</span>
@@ -3441,15 +3589,14 @@ export default function App() {
                           </td>
                           <td
                             style={{
-                              padding: "12px 14px",
-                              color: "#9CA3AF",
-                              fontSize: 12,
-                              whiteSpace: "nowrap" as any,
+                              color: "#64748B",
+                              fontSize: "12px",
+                              whiteSpace: "nowrap",
                             }}
                           >
                             {order.tarih}
                           </td>
-                          <td style={{ padding: "12px 14px" }}>
+                          <td>
                             <button
                               onClick={(e: any) => {
                                 e.stopPropagation();
@@ -3457,15 +3604,23 @@ export default function App() {
                                 setShowOrder(true);
                               }}
                               style={{
-                                background: "#F1F5F9",
+                                background: "#EFF6FF",
+                                color: "#2563EB",
                                 border: "none",
-                                borderRadius: 8,
-                                padding: "5px 12px",
+                                borderRadius: "8px",
+                                padding: "8px 16px",
                                 cursor: "pointer",
-                                fontSize: 12,
+                                fontSize: "13px",
                                 fontWeight: 600,
                                 fontFamily: "inherit",
+                                transition: "background 0.2s",
                               }}
+                              onMouseOver={(e: any) =>
+                                (e.target.style.background = "#DBEAFE")
+                              }
+                              onMouseOut={(e: any) =>
+                                (e.target.style.background = "#EFF6FF")
+                              }
                             >
                               Düzenle
                             </button>
@@ -3480,20 +3635,21 @@ export default function App() {
             {!loading && filtered.length > 0 && (
               <div
                 style={{
-                  padding: "10px 16px",
-                  borderTop: "1px solid #F1F5F9",
-                  fontSize: 12,
-                  color: "#9CA3AF",
+                  padding: "16px 20px",
+                  borderTop: "1px solid #E2E8F0",
+                  fontSize: "13px",
+                  color: "#64748B",
+                  background: "#F8FAFC",
                 }}
               >
-                {filtered.length} sipariş · Temiz360
+                Toplam <strong>{filtered.length}</strong> sipariş listeleniyor.
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* ALT NAV (mobil) */}
+      {/* ALT NAV (Mobil) */}
       <div
         className="bottom-nav"
         style={{
@@ -3502,9 +3658,10 @@ export default function App() {
           bottom: 0,
           left: 0,
           right: 0,
-          background: "#fff",
-          borderTop: "1px solid #E5E7EB",
-          padding: "8px 0 16px",
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(10px)",
+          borderTop: "1px solid #E2E8F0",
+          padding: "12px 0 20px",
           justifyContent: "space-around",
           zIndex: 100,
         }}
@@ -3520,7 +3677,7 @@ export default function App() {
               display: "flex",
               flexDirection: "column" as any,
               alignItems: "center",
-              gap: 2,
+              gap: 4,
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -3531,9 +3688,9 @@ export default function App() {
             <span style={{ fontSize: 22 }}>{ic}</span>
             <span
               style={{
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: activeTab === k ? 700 : 500,
-                color: activeTab === k ? "#1E40AF" : "#94A3B8",
+                color: activeTab === k ? "#2563EB" : "#64748B",
               }}
             >
               {l}
@@ -3549,7 +3706,7 @@ export default function App() {
             display: "flex",
             flexDirection: "column" as any,
             alignItems: "center",
-            gap: 2,
+            gap: 4,
             background: "none",
             border: "none",
             cursor: "pointer",
@@ -3559,21 +3716,22 @@ export default function App() {
         >
           <div
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: "50%",
-              background: "linear-gradient(135deg,#06B6D4,#3B82F6)",
+              background: "linear-gradient(135deg,#3B82F6,#2563EB)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 20,
-              marginTop: -20,
-              boxShadow: "0 4px 12px rgba(59,130,246,0.4)",
+              fontSize: 22,
+              marginTop: -22,
+              boxShadow: "0 8px 16px rgba(37,99,235,0.3)",
+              color: "#fff",
             }}
           >
             ➕
           </div>
-          <span style={{ fontSize: 10, color: "#94A3B8", marginTop: 2 }}>
+          <span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>
             Ekle
           </span>
         </button>
@@ -3583,7 +3741,7 @@ export default function App() {
             display: "flex",
             flexDirection: "column" as any,
             alignItems: "center",
-            gap: 2,
+            gap: 4,
             background: "none",
             border: "none",
             cursor: "pointer",
@@ -3594,29 +3752,13 @@ export default function App() {
           <span style={{ fontSize: 22 }}>{aktifFiltre > 0 ? "🔵" : "🔽"}</span>
           <span
             style={{
-              fontSize: 10,
-              color: aktifFiltre > 0 ? "#1E40AF" : "#94A3B8",
+              fontSize: 11,
+              fontWeight: aktifFiltre > 0 ? 700 : 500,
+              color: aktifFiltre > 0 ? "#2563EB" : "#64748B",
             }}
           >
             Filtre
           </span>
-        </button>
-        <button
-          onClick={() => setShowHali(true)}
-          style={{
-            display: "flex",
-            flexDirection: "column" as any,
-            alignItems: "center",
-            gap: 2,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            flex: 1,
-          }}
-        >
-          <span style={{ fontSize: 22 }}>🪄</span>
-          <span style={{ fontSize: 10, color: "#94A3B8" }}>Halı</span>
         </button>
       </div>
 
@@ -3681,6 +3823,7 @@ export default function App() {
           onSaved={yukle}
         />
       )}
+
       <Toast msg={toast.msg} type={toast.type} />
     </div>
   );
