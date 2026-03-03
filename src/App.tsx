@@ -1125,7 +1125,7 @@ export default function App() {
           </div>
           <div>
             <div style={{ color: "#fff", fontWeight: 800, fontSize: "18px", lineHeight: 1, letterSpacing: "-0.5px" }}>HalıPro <span style={{ color: "#3B82F6" }}>.</span></div>
-            <div style={{ color: "#94A3B8", fontSize: "11px", marginTop: "2px", fontWeight: 500 }}>
+            <div style={{ color: "#475569", fontSize: 10 }}>
               {isAdmin ? "👑 Yönetici Paneli" : (firmalar.length > 0 ? `🏢 ${firmalar[0].ad}` : user?.email)}
             </div>
           </div>
