@@ -845,36 +845,36 @@ function FirmaModal({
     setErr("");
 
     try {
-      // Supabase Invite API'sine İstek Atıyoruz
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/invite`, {
+      // 1. ADIM: Firmayı arka planda rastgele, güçlü bir şifreyle sisteme kayıt et
+      const tempPassword = "T360." + Math.random().toString(36).slice(-8) + "!";
+      await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
         method: "POST",
         headers: {
           apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password: tempPassword }),
+      });
+      // Not: Kullanıcı zaten varsa Supabase hata dönse bile, şifre sıfırlama adımıyla devam edeceğiz.
+
+      // 2. ADIM: Firmaya "Şifre Sıfırlama" linki gönder (Davetiye maili olarak bu gidecek)
+      const recoverRes = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email }),
       });
 
-      // Eğer istek başarısız olursa hatayı yakalayıp ekrana basalım
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("Supabase Davet Hatası:", errorData);
-
-        // "Kullanıcı zaten kayıtlı" hatası dışındaki tüm hatalarda işlemi durdur
-        if (
-          errorData.code !== "user_already_exists" &&
-          errorData.msg !== "User already registered"
-        ) {
-          throw new Error(
-            `Mail Gönderilemedi: ${
-              errorData.message || errorData.msg || "Bilinmeyen Yetki Hatası"
-            }`
-          );
-        }
+      if (!recoverRes.ok) {
+        const errData = await recoverRes.json();
+        throw new Error(
+          `Mail sunucusu reddetti: ${errData.msg || errData.message}`
+        );
       }
 
-      // Mail başarıyla gittiyse veya kullanıcı zaten varsa DB'ye ekle
+      // 3. ADIM: Firmayı kendi veritabanı tablomuza (firmalar) ekle
       await dbFirmaEkle(token, ad, email);
       setAd("");
       setEmail("");
@@ -882,7 +882,7 @@ function FirmaModal({
       setFirmalar(liste);
       onSaved();
     } catch (e: any) {
-      setErr(e.message); // Hatayı kırmızı kutu içinde ekrana yazdırır
+      setErr(e.message);
     } finally {
       setSaving(false);
     }
