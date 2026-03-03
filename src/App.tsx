@@ -1003,7 +1003,7 @@ export default function App() {
       setLoading(true); setErr(null);
       const [ss, ff] = await Promise.all([
         dbGetir(user.token, isAdmin),
-        isAdmin ? dbFirmalariGetir(user.token) : sbFetch(`firmalar?email=eq.${user.email}&select=*`, {}, user.token).catch(() => []),
+        isAdmin ? dbFirmalariGetir(user.token) : sbFetch(`firmalar?email=ilike.${encodeURIComponent(user.email)}&select=*`, {}, user.token).catch(() => []),
       ]);
       setOrders(ss); setFirmalar(ff || []);
     } catch (e: any) { setErr(e.message); } finally { setLoading(false); }
@@ -1140,7 +1140,7 @@ export default function App() {
         <div style={{ display: "flex", gap: "6px" }}>
           {isAdmin && <button onClick={() => setShowFirma(true)} style={{ background: "rgba(255,255,255,0.08)", color: "#fff", border: "none", borderRadius: "10px", padding: "0 10px", height: "38px", cursor: "pointer", fontSize: "14px" }}>🏢</button>}
           <button onClick={yukle} style={{ background: "rgba(255,255,255,0.08)", color: "#fff", border: "none", borderRadius: "10px", width: "38px", height: "38px", cursor: "pointer", fontSize: "16px" }}>⟳</button>
-          <button onClick={handleLogout} className="hide-on-mobile" style={{ background: "transparent", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "0 12px", height: "38px", cursor: "pointer", fontSize: "13px", fontWeight: 500, fontFamily: "inherit" }}>Çıkış</button>
+          <button onClick={handleLogout} style={{ background: "transparent", color: "#94A3B8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "10px", padding: "0 12px", height: "38px", cursor: "pointer", fontSize: "13px", fontWeight: 500, fontFamily: "inherit" }}>Çıkış</button>
           <button onClick={() => { setEditing(null); setShowOrder(true); }} className="hide-on-mobile" style={{ background: "linear-gradient(135deg,#3B82F6,#2563EB)", color: "#fff", border: "none", borderRadius: "10px", padding: "0 16px", height: "38px", cursor: "pointer", fontWeight: 700, fontSize: "13px", fontFamily: "inherit", boxShadow: "0 4px 10px rgba(37, 99, 235, 0.3)" }}>+ Yeni Sipariş</button>
         </div>
       </div>
