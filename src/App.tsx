@@ -11,6 +11,7 @@ interface HaliKalemi {
   turId: string;
   adet: number;
   m2: number;
+  birimFiyat?: number;
 }
 interface Siparis {
   id: string;
@@ -124,51 +125,95 @@ const STATUS_CONFIG: Record<string, StatusCfg> = {
   teslim_edildi: { label: "Teslim Edildi", color: "#6B7280", bg: "#F3F4F6", icon: "📦" },
 };
 
-const VARSAYILAN_HT: HaliTuru[] = [
-  { id: "klasik", ad: "Klasik / Düz", birimFiyat: 25, icon: "🟫" },
-  { id: "akrilik", ad: "Akrilik", birimFiyat: 30, icon: "🟦" },
-  { id: "yun", ad: "Yün", birimFiyat: 45, icon: "🐑" },
-  { id: "ipek", ad: "İpek / Bambu", birimFiyat: 80, icon: "✨" },
-  { id: "shaggy", ad: "Shaggy / Tüylü", birimFiyat: 40, icon: "🦁" },
-  { id: "kilim", ad: "Kilim / Düz Dokuma", birimFiyat: 20, icon: "🔶" },
-  { id: "cocuk", ad: "Çocuk Odası Halısı", birimFiyat: 28, icon: "🧒" },
-  { id: "banyo", ad: "Banyo / Kapı Paspası", birimFiyat: 15, icon: "🚿" },
-];
-
 const STATUSLAR = ["Tümü", ...Object.keys(STATUS_CONFIG)];
 
 // ─── YARDIMCI ────────────────────────────────────────────────────────────────
-function smsMesaji(durum: string, order: Siparis, ht: HaliTuru[]): string {
+function smsMesaji(durum: string, order: Siparis, ht: HaliTuru[], firmaAd: string): string {
   const tl = (order.haliKalemleri || [])
     .map((k: HaliKalemi) => {
       const t = ht.find((x) => x.id === k.turId);
       return `${t?.ad || k.turId} (${k.m2}m²)`;
     })
     .join(", ");
+  const adet = toplamAdet(order.haliKalemleri);
+  const m2 = toplamM2(order.haliKalemleri);
+  const firma = firmaAd || "Temiz360";
   const m: Record<string, string> = {
-    toplandı: `Sayın *${order.musteri}*, halılarınız teslim alındı. 🚛\nSipariş No: ${order.id}\nHalılar: ${tl}\nTutar: *₺${order.fiyat}*\n~ Temiz360`,
-    yıkamada: `Sayın *${order.musteri}*, halılarınız yıkamaya alındı. 🫧\nSipariş No: ${order.id}\nHalılar: ${tl}\n~ Temiz360`,
-    kurutuluyor: `Sayın *${order.musteri}*, halılarınız kurutuluyor. 💨\nSipariş No: ${order.id}\n~ Temiz360`,
-    hazır: `Sayın *${order.musteri}*, halılarınız HAZIR! 🎉\nSipariş No: ${order.id}\nHalılar: ${tl}\nÖdenecek: *₺${order.fiyat}*\n~ Temiz360`,
-    dağıtımda: `Sayın *${order.musteri}*, halılarınız yola çıktı! 🏍️\nSipariş No: ${order.id}\nÖdenecek: *₺${order.fiyat}*\n~ Temiz360`,
-    teslim_edildi: `Sayın *${order.musteri}*, halılarınız teslim edildi. ✅\nToplam: *₺${order.fiyat}*\nTemiz360'ı tercih ettiğiniz için teşekkürler!`,
+    toplandı: `Sayın ${order.musteri}, halılarınız teslim alındı.\nSipariş No: ${order.id}\nHalılar: ${tl}\nAdet: ${adet}\nToplam m²: ${m2}\nTutar: ₺${order.fiyat}\n${firma}`,
+    yıkamada: `Sayın ${order.musteri}, halılarınız yıkamaya alındı. 🫧\nSipariş No: ${order.id}\nHalılar: ${tl}\n${firma}`,
+    kurutuluyor: `Sayın ${order.musteri}, halılarınız kurutuluyor. 💨\nSipariş No: ${order.id}\n${firma}`,
+    hazır: `Sayın ${order.musteri}, halılarınız HAZIR! 🎉\nSipariş No: ${order.id}\nHalılar: ${tl}\nÖdenecek: ₺${order.fiyat}\n${firma}`,
+    dağıtımda: `Sayın ${order.musteri}, halılarınız yola çıktı! 🏍️\nSipariş No: ${order.id}\nÖdenecek: ₺${order.fiyat}\n${firma}`,
+    teslim_edildi: `Sayın ${order.musteri}, halılarınız teslim edildi. ✅\nToplam: ₺${order.fiyat}\n${firma}'ı tercih ettiğiniz için teşekkürler!`,
   };
   return m[durum] || "";
 }
 
-const hesaplaFiyat = (k: HaliKalemi[], t: HaliTuru[]) =>
-  k.reduce(
-    (s, x) =>
-      s +
-      (t.find((r) => r.id === x.turId)?.birimFiyat || 0) * (Number(x.m2) || 0) * (Number(x.adet) || 1),
-    0
-  );
 const toplamM2 = (k: HaliKalemi[]) =>
   k.reduce((s, x) => s + (Number(x.m2) || 0) * (Number(x.adet) || 1), 0);
 const toplamAdet = (k: HaliKalemi[]) =>
   k.reduce((s, x) => s + (Number(x.adet) || 0), 0);
 
 // ─── DB ──────────────────────────────────────────────────────────────────────
+const VARSAYILAN_FIYAT_LISTESI: { ad: string; birimFiyat: number; icon: string; }[] = [
+    { ad: "Klasik / Düz", birimFiyat: 25, icon: "🟫" },
+    { ad: "Akrilik", birimFiyat: 30, icon: "🟦" },
+    { ad: "Yün", birimFiyat: 45, icon: "🐑" },
+    { ad: "İpek / Bambu", birimFiyat: 80, icon: "✨" },
+    { ad: "Shaggy / Tüylü", birimFiyat: 40, icon: "🦁" },
+    { ad: "Kilim / Düz Dokuma", birimFiyat: 20, icon: "🔶" },
+    { ad: "Çocuk Odası Halısı", birimFiyat: 28, icon: "🧒" },
+    { ad: "Banyo / Kapı Paspası", birimFiyat: 15, icon: "🚿" },
+];
+
+async function dbHaliTurleriniGetir(token: string, firmaId: string): Promise<HaliTuru[]> {
+  let turler = await sbFetch(`hali_fiyatlari?firma_id=eq.${firmaId}&select=*`, {}, token);
+  
+  // Firmanın fiyat listesi yoksa, varsayılan listeden oluştur ve kaydet.
+  if (turler.length === 0) {
+    const yeniListe = VARSAYILAN_FIYAT_LISTESI.map(t => ({
+      firma_id: firmaId,
+      tur_id: t.ad.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, ""),
+      ad: t.ad,
+      birim_fiyat: t.birimFiyat,
+      icon: t.icon,
+    }));
+    turler = await sbFetch(
+      "hali_fiyatlari",
+      { method: "POST", body: JSON.stringify(yeniListe) },
+      token
+    );
+  }
+
+  return turler.map((t: any) => ({
+    id: t.tur_id,
+    ad: t.ad,
+    birimFiyat: Number(t.birim_fiyat),
+    icon: t.icon,
+  }));
+}
+
+async function dbHaliTurleriKaydet(token: string, firmaId: string, turler: HaliTuru[]): Promise<any> {
+  // Önce mevcut tüm fiyatları sil
+  await sbFetch(`hali_fiyatlari?firma_id=eq.${firmaId}`, { method: "DELETE", prefer: "return=minimal" }, token);
+  
+  // Sonra yeni listeyi ekle
+  const yeniListe = turler.map(t => ({
+    firma_id: firmaId,
+    tur_id: t.id,
+    ad: t.ad,
+    birim_fiyat: t.birimFiyat,
+    icon: t.icon,
+  }));
+
+  return await sbFetch(
+    "hali_fiyatlari",
+    { method: "POST", body: JSON.stringify(yeniListe) },
+    token
+  );
+}
+
+
 async function dbGetir(token: string, isAdmin: boolean): Promise<Siparis[]> {
   const query = isAdmin
     ? "siparisler?select=*,firmalar(ad)&order=olusturuldu.desc"
@@ -191,7 +236,7 @@ async function dbGetir(token: string, isAdmin: boolean): Promise<Siparis[]> {
     firmaAd: s.firmalar?.ad || "",
     haliKalemleri: kk
       .filter((k: any) => k.siparis_id === s.id)
-      .map((k: any) => ({ turId: k.tur_id, adet: k.adet, m2: Number(k.m2) })),
+      .map((k: any) => ({ turId: k.tur_id, adet: k.adet, m2: Number(k.m2), birimFiyat: Number(k.birim_fiyat) })),
   }));
 }
 
@@ -267,22 +312,22 @@ async function dbKaydet(
     );
   }
   if (form.haliKalemleri?.length) {
+    const kalemler = form.haliKalemleri.map((k: any) => {
+      const birimFiyat = ht.find((t) => t.id === k.turId)?.birimFiyat || 0;
+      return {
+        siparis_id: editId || id,
+        tur_id: k.turId,
+        adet: Number(k.adet) || 1,
+        m2: Number(k.m2) || 0,
+        birim_fiyat: birimFiyat,
+        tutar: birimFiyat * (Number(k.m2) || 0) * (Number(k.adet) || 1),
+      };
+    });
     await sbFetch(
       "hali_kalemleri",
       {
         method: "POST",
-        body: JSON.stringify(
-          form.haliKalemleri.map((k: any) => ({
-            siparis_id: editId || id,
-            tur_id: k.turId,
-            adet: Number(k.adet) || 1,
-            m2: Number(k.m2) || 0,
-            tutar:
-              (ht.find((t) => t.id === k.turId)?.birimFiyat || 0) *
-              (Number(k.m2) || 0) *
-              (Number(k.adet) || 1),
-          }))
-        ),
+        body: JSON.stringify(kalemler),
       },
       token
     );
@@ -630,10 +675,10 @@ function HaliModal({ turler, onClose, onSave }: { turler: HaliTuru[]; onClose: (
 }
 
 // ─── SMS MODALI ───────────────────────────────────────────────────────────────
-function SmsModal({ order, ht, onClose, onSend }: { order: Siparis; ht: HaliTuru[]; onClose: () => void; onSend: (s: string, m: string) => Promise<void>; }) {
+function SmsModal({ order, ht, firmaAd, onClose, onSend }: { order: Siparis; ht: HaliTuru[]; firmaAd: string; onClose: () => void; onSend: (s: string, m: string) => Promise<void>; }) {
   const [sel, setSel] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const txt = sel ? smsMesaji(sel, order, ht) : "";
+  const txt = sel ? smsMesaji(sel, order, ht, firmaAd) : "";
   
   const handleSend = async () => { 
     if (!sel) return; 
@@ -731,12 +776,15 @@ function DetailSheet({ order, ht, isAdmin, onClose, onStatusChange, onEdit, onSm
           <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 8, textTransform: "uppercase" as any }}>Halı Detayları</div>
           {(order.haliKalemleri || []).map((k, i) => {
             const tur = ht.find((t) => t.id === k.turId);
+            // Sipariş anında kaydedilen birim fiyatı kullan, yoksa güncel fiyata fallback yap (eski kayıtlar için)
+            const kalemBirimFiyat = k.birimFiyat ?? tur?.birimFiyat ?? 0;
+            const kalemTutar = kalemBirimFiyat * (k.m2 || 0) * (k.adet || 1);
             return (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", marginBottom: 8 }}>
                 <span style={{ fontSize: 15, fontWeight: 500 }}>{tur?.icon} {tur?.ad}</span>
                 <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                   <span style={{ fontSize: 13, color: "#64748B" }}>{k.adet}ad · {k.m2}m²</span>
-                  <span style={{ fontWeight: 800, color: "#059669", fontSize: 15 }}>₺{tur ? tur.birimFiyat * k.m2 * k.adet : 0}</span>
+                  <span style={{ fontWeight: 800, color: "#059669", fontSize: 15 }}>₺{kalemTutar}</span>
                 </div>
               </div>
             );
@@ -993,9 +1041,7 @@ export default function App() {
   const [showFilter, setShowFilter] = useState(false);
   const [toast, setToast] = useState<ToastState>({ msg: null, type: "success" });
 
-  const [ht, setHt] = useState<HaliTuru[]>(() => {
-    try { const s = localStorage.getItem("t360_ht"); return s ? JSON.parse(s) : VARSAYILAN_HT; } catch { return VARSAYILAN_HT; }
-  });
+  const [ht, setHt] = useState<HaliTuru[]>([]);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -1018,13 +1064,21 @@ export default function App() {
     if (!user) return;
     try {
       setLoading(true); setErr(null);
-      const [ss, ff] = await Promise.all([
+      const [siparisler, firmalarData] = await Promise.all([
         dbGetir(user.token, isAdmin),
         isAdmin
           ? dbFirmalariGetir(user.token)
           : sbFetch(`firmalar?email=eq.${user.email}`, {}, user.token),
       ]);
-      setOrders(ss); setFirmalar(ff || []);
+      
+      // Yönetici olmayan kullanıcılar kendi fiyat listesini yükler.
+      const firmaId = isAdmin ? null : firmalarData[0]?.id;
+      if (firmaId) {
+        const turler = await dbHaliTurleriniGetir(user.token, firmaId);
+        setHt(turler);
+      }
+      
+      setOrders(siparisler); setFirmalar(firmalarData || []);
     } catch (e: any) { setErr(e.message); } finally { setLoading(false); }
   }, [user, isAdmin]);
 
@@ -1058,6 +1112,23 @@ export default function App() {
       showToast(editing ? "Sipariş güncellendi" : "Sipariş oluşturuldu");
       await yukle(); setShowOrder(false); setEditing(null);
     } catch (e: any) { showToast(e.message, "error"); }
+  };
+
+  const handleHaliTurleriSave = async (turler: HaliTuru[]) => {
+    if (!user || isAdmin) return;
+    const firmaId = firmalar[0]?.id;
+    if (!firmaId) {
+      showToast("Firma bilgisi bulunamadı.", "error");
+      return;
+    }
+    try {
+      await dbHaliTurleriKaydet(user.token, firmaId, turler);
+      setHt(turler); // State'i lokal olarak güncelle
+      setShowHali(false);
+      showToast("Fiyat listesi başarıyla güncellendi");
+    } catch (e: any) {
+      showToast(e.message, "error");
+    }
   };
 
   const handleStatus = async (id: string, ns: string) => {
@@ -1152,8 +1223,8 @@ export default function App() {
         </div>
         
         <div className="header-tabs" style={{ background: "rgba(255,255,255,0.06)", borderRadius: "12px", padding: "4px", display: "none", border: "1px solid rgba(255,255,255,0.05)" }}>
-          {[["siparisler", "📋 Siparişler"], ["raporlar", "📊 Raporlar"], ["fiyatlar", "🏷️ Fiyat Listesi"]].map(([k, l]) => (
-            <button key={k} onClick={() => setActiveTab(k)} style={{ padding: "8px 20px", borderRadius: "8px", border: "none", background: activeTab === k ? "#fff" : "transparent", color: activeTab === k ? "#0F172A" : "#94A3B8", fontWeight: activeTab === k ? 700 : 500, fontSize: "13px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s" }}>{l}</button>
+          {[["siparisler", "📋 Siparişler"], ["raporlar", "📊 Raporlar"], ...(!isAdmin ? [["fiyatlar", "🏷️ Fiyat Listesi"]] : [])].map(([k, l]) => (
+            <button key={k as string} onClick={() => setActiveTab(k as string)} style={{ padding: "8px 20px", borderRadius: "8px", border: "none", background: activeTab === k ? "#fff" : "transparent", color: activeTab === k ? "#0F172A" : "#94A3B8", fontWeight: activeTab === k ? 700 : 500, fontSize: "13px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s" }}>{l as string}</button>
           ))}
         </div>
 
@@ -1172,7 +1243,7 @@ export default function App() {
         </div>
       )}
 
-      {activeTab === "fiyatlar" && (
+      {activeTab === "fiyatlar" && !isAdmin && (
         <div style={{ padding: "24px", paddingBottom: "100px", maxWidth: "800px", margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Halı Türleri ve Fiyatlar</h2>
@@ -1361,10 +1432,10 @@ export default function App() {
 
       {/* ALT NAV (Mobil) */}
       <div className="bottom-nav" style={{ display: "none", position: "fixed", bottom: 0, left: 0, right: 0, background: "rgba(255,255,255,0.9)", backdropFilter: "blur(10px)", borderTop: "1px solid #E2E8F0", padding: "12px 0 20px", justifyContent: "space-around", zIndex: 100 }}>
-        {[["siparisler", "📋", "Siparişler"], ["raporlar", "📊", "Raporlar"], ["fiyatlar", "🏷️", "Fiyatlar"]].map(([k, ic, l]) => (
-          <button key={k} onClick={() => setActiveTab(k)} style={{ display: "flex", flexDirection: "column" as any, alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", flex: 1 }}>
-            <span style={{ fontSize: 22 }}>{ic}</span>
-            <span style={{ fontSize: 11, fontWeight: activeTab === k ? 700 : 500, color: activeTab === k ? "#2563EB" : "#64748B" }}>{l}</span>
+        {[["siparisler", "📋", "Siparişler"], ["raporlar", "📊", "Raporlar"], ...(!isAdmin ? [["fiyatlar", "🏷️", "Fiyatlar"]] : [])].map(([k, ic, l]) => (
+          <button key={k as string} onClick={() => setActiveTab(k as string)} style={{ display: "flex", flexDirection: "column" as any, alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", flex: 1 }}>
+            <span style={{ fontSize: 22 }}>{ic as string}</span>
+            <span style={{ fontSize: 11, fontWeight: activeTab === k ? 700 : 500, color: activeTab === k ? "#2563EB" : "#64748B" }}>{l as string}</span>
           </button>
         ))}
         <button onClick={() => { setEditing(null); setShowOrder(true); }} style={{ display: "flex", flexDirection: "column" as any, alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", flex: 1 }}>
@@ -1380,8 +1451,8 @@ export default function App() {
       {/* MODALLAR */}
       {sel && <DetailSheet order={orders.find((o) => o.id === sel.id) || null} ht={ht} isAdmin={isAdmin} onClose={() => setSel(null)} onStatusChange={handleStatus} onEdit={(o) => { setEditing(o); setShowOrder(true); setSel(null); }} onSmsOpen={(o) => { setSmsOrder(o); setSel(null); }} />}
       {showOrder && <OrderModal order={editing} ht={ht} firmalar={firmalar} isAdmin={isAdmin} onClose={() => { setShowOrder(false); setEditing(null); }} onSave={handleSave} />}
-      {smsOrder && <SmsModal order={smsOrder} ht={ht} onClose={() => setSmsOrder(null)} onSend={handleSms} />}
-      {showHali && <HaliModal turler={ht} onClose={() => setShowHali(false)} onSave={(l) => { setHt(l); try { localStorage.setItem("t360_ht", JSON.stringify(l)); } catch {} setShowHali(false); showToast("Halı türleri güncellendi"); }} />}
+      {smsOrder && <SmsModal order={smsOrder} ht={ht} firmaAd={isAdmin ? smsOrder.firmaAd || "" : (firmalar.length > 0 ? firmalar[0].ad : "Temiz360")} onClose={() => setSmsOrder(null)} onSend={handleSms} />}
+      {showHali && !isAdmin && <HaliModal turler={ht} onClose={() => setShowHali(false)} onSave={handleHaliTurleriSave} />}
       {showFirma && isAdmin && <FirmaModal token={user!.token} onClose={() => setShowFirma(false)} onSaved={yukle} />}
 
       <Toast msg={toast.msg} type={toast.type} />
