@@ -50,10 +50,9 @@ interface AuthUser {
 }
 
 // ─── SUPABASE ────────────────────────────────────────────────────────────────
-const SUPABASE_URL = "https://nubrhlnxrajuebphahrp.supabase.co";
-const SUPABASE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im51YnJobG54cmFqdWVicGhhaHJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjM3MzcsImV4cCI6MjA4NzkzOTczN30.tf-fBN-a-xS08lES5cJ7RUY2DKrUVSalgH_wHxFjs5Y";
-const ADMIN_EMAIL = "cemayaz1981@gmail.com";
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL!;
+const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY!;
+const ADMIN_EMAIL = process.env.REACT_APP_ADMIN_EMAIL!;
 
 async function sbFetch(
   path: string,
