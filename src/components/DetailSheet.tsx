@@ -153,7 +153,7 @@ export function DetailSheet({ order, ht, isAdmin, onClose, onStatusChange, onEdi
             💬 WhatsApp {smsSayisi > 0 ? `(${smsSayisi})` : ""}
           </button>
         </div>
-        {onDelete && (
+        {onDelete && !isAdmin && (
           <div style={{ marginTop: 10 }}>
             {silConfirm ? (
               <div style={{ background: "#FEF2F2", borderRadius: 12, padding: "12px 16px", border: "1px solid #FECACA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
