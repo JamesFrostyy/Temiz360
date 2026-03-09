@@ -114,11 +114,12 @@ export async function dbFirmalariGetir(token: string): Promise<Firma[]> {
 export async function dbFirmaEkle(
   token: string,
   ad: string,
-  email: string
+  email: string,
+  extra?: Record<string, string | undefined>
 ): Promise<void> {
   await sbFetch(
     "firmalar",
-    { method: "POST", body: JSON.stringify({ ad, email, aktif: true }) },
+    { method: "POST", body: JSON.stringify({ ad, email, aktif: true, ...extra }) },
     token
   );
 }
@@ -127,11 +128,12 @@ export async function dbFirmaGuncelle(
   token: string,
   id: string,
   ad: string,
-  aktif: boolean
+  aktif: boolean,
+  extra?: Record<string, string | undefined>
 ): Promise<void> {
   await sbFetch(
     `firmalar?id=eq.${id}`,
-    { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ ad, aktif }) },
+    { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ ad, aktif, ...extra }) },
     token
   );
 }

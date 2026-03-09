@@ -32,6 +32,19 @@ export interface Firma {
   ad: string;
   email: string;
   aktif: boolean;
+  // İletişim
+  telefon?: string;
+  adres?: string;
+  sehir?: string;
+  // Yetkili
+  yetkili_ad?: string;
+  yetkili_unvan?: string;
+  // Vergi
+  vergi_no?: string;
+  vergi_dairesi?: string;
+  // Abonelik
+  abonelik_plani?: "starter" | "pro" | "enterprise";
+  abonelik_baslangic?: string;
 }
 
 export interface StatusCfg {

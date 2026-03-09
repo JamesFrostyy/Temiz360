@@ -154,19 +154,11 @@ export default function App() {
   const aktifFiltre = (filterStatus !== "Tümü" ? 1 : 0) + (filterFirma !== "Tümü" ? 1 : 0) + (search ? 1 : 0);
 
   const handleSave = async (form: OrderForm) => {
-  if (!user) return;
-  const resolvedFirmaId = isAdmin ? form.firmaId : firmaId;
-  await dbKaydet(form, editing?.id || null, ht, user.token, resolvedFirmaId);
-  await yukle();
-  showToast(editing ? "Sipariş güncellendi!" : "Sipariş oluşturuldu!");
-};
-
-  const handleDelete = async (id: string) => {
     if (!user) return;
-    await sbFetch(`hali_kalemleri?siparis_id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, user.token);
-    await sbFetch(`siparisler?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, user.token);
-    setOrders((prev) => prev.filter((o) => o.id !== id));
-    showToast("Sipariş silindi!");
+    const resolvedFirmaId = isAdmin ? form.firmaId : firmaId;
+    await dbKaydet(form, editing?.id || null, ht, user.token, resolvedFirmaId);
+    await yukle();
+    showToast(editing ? "Sipariş güncellendi!" : "Sipariş oluşturuldu!");
   };
 
   const handleStatus = async (id: string, durum: string) => {
@@ -300,8 +292,8 @@ export default function App() {
             )}
           </div>
 
-          {/* Tablo */}
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+          {/* Tablo - DESKTOP */}
+          <div className="order-table" style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden" }}>
             {loading ? (
               <div style={{ padding: 60, textAlign: "center" }}>
                 <div style={{ width: 40, height: 40, border: "3px solid #E2E8F0", borderTop: "3px solid #3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
@@ -355,6 +347,52 @@ export default function App() {
               </div>
             )}
           </div>
+
+          {/* Kartlar - MOBİL */}
+          <div className="order-cards">
+            {loading ? (
+              <div style={{ padding: 40, textAlign: "center" }}>
+                <div style={{ width: 36, height: 36, border: "3px solid #E2E8F0", borderTop: "3px solid #3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Sonuç bulunamadı.</div>
+            ) : filtered.map((order) => {
+              const smsSayisi = Object.values(order.smsDurum || {}).filter(Boolean).length;
+              return (
+                <div key={order.id} onClick={() => setSel(order)} style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)", cursor: "pointer" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontWeight: 700, color: "#475569", fontSize: 11, background: "#F1F5F9", padding: "3px 8px", borderRadius: 6 }}>{order.id}</span>
+                    <span style={{ fontSize: 11, color: "#94A3B8" }}>{order.tarih}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: "#0F172A" }}>{order.musteri}</div>
+                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{order.telefon}</div>
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 18, color: "#059669" }}>₺{order.fiyat?.toLocaleString()}</div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                    {(order.haliKalemleri || []).map((k, ki) => {
+                      const tur = ht.find((t) => t.id === k.turId);
+                      return <span key={ki} style={{ fontSize: 11, background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#475569", padding: "4px 8px", borderRadius: 6 }}>{tur?.icon} {tur?.ad} · {k.m2}m²</span>;
+                    })}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <StatusBadge durum={order.durum} />
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {smsSayisi > 0 && <span style={{ fontSize: 11, background: "#ECFDF5", border: "1px solid #A7F3D0", color: "#059669", padding: "3px 8px", borderRadius: 6, fontWeight: 700 }}>📱 {smsSayisi}</span>}
+                      <button onClick={(e) => { e.stopPropagation(); setEditing(order); setShowOrder(true); }} style={{ background: "#EFF6FF", color: "#2563EB", border: "none", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Düzenle</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {!loading && filtered.length > 0 && (
+              <div style={{ padding: "6px 4px", fontSize: 13, color: "#94A3B8", textAlign: "center" }}>
+                Toplam <strong style={{ color: "#475569" }}>{filtered.length}</strong> sipariş
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -373,7 +411,7 @@ export default function App() {
       </div>
 
       {/* Modallar */}
-      {sel && <DetailSheet order={orders.find((o) => o.id === sel.id) || null} ht={ht} isAdmin={isAdmin} onClose={() => setSel(null)} onStatusChange={handleStatus} onEdit={(o) => { setEditing(o); setShowOrder(true); setSel(null); }} onSmsOpen={(o) => { setSmsOrder(o); setSel(null); }} onDelete={handleDelete} />}
+      {sel && <DetailSheet order={orders.find((o) => o.id === sel.id) || null} ht={ht} isAdmin={isAdmin} onClose={() => setSel(null)} onStatusChange={handleStatus} onEdit={(o) => { setEditing(o); setShowOrder(true); setSel(null); }} onSmsOpen={(o) => { setSmsOrder(o); setSel(null); }} onDelete={async (id) => { if (!user) return; await sbFetch("hali_kalemleri?siparis_id=eq." + id, { method: "DELETE", prefer: "return=minimal" }, user.token); await sbFetch("siparisler?id=eq." + id, { method: "DELETE", prefer: "return=minimal" }, user.token); setOrders((prev) => prev.filter((o) => o.id !== id)); setSel(null); showToast("Sipariş silindi!"); }} />}
       {showOrder && <OrderModal order={editing} ht={ht} firmalar={firmalar} isAdmin={isAdmin} token={user!.token} firmaId={firmaId} onClose={() => { setEditing(null); setShowOrder(false); }} onSave={handleSave} />}
       {smsOrder && <SmsModal order={smsOrder} ht={ht} firmaAd={isAdmin ? smsOrder.firmaAd || "" : firmaAd} onClose={() => setSmsOrder(null)} onSend={handleSms} />}
       {showHali && !isAdmin && <HaliModal turler={ht} onClose={() => setShowHali(false)} onSave={handleHaliTurleriSave} />}
