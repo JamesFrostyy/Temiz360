@@ -18,13 +18,13 @@ export function useOrders(token: string, isAdmin: boolean, userEmail?: string) {
     setErr(null);
     try {
       const firmaSonuc = await sbFetch(
-        `firmalar?email=eq.${userEmail}&select=id,ad`,
+        `firmalar?email=eq.${userEmail}&select=*`,
         {},
         token
-      ) as { id: string; ad: string }[];
+      ) as Record<string, unknown>[];
 
-      const resolvedFirmaId = firmaSonuc?.[0]?.id || "";
-      const resolvedFirmaAd = firmaSonuc?.[0]?.ad || "";
+      const resolvedFirmaId = (firmaSonuc?.[0]?.id as string) || "";
+      const resolvedFirmaAd = (firmaSonuc?.[0]?.ad as string) || "";
       setFirmaId(resolvedFirmaId);
       setFirmaAd(resolvedFirmaAd);
 
@@ -34,7 +34,29 @@ export function useOrders(token: string, isAdmin: boolean, userEmail?: string) {
       ]);
 
       setOrders(siparisler);
-      setFirmalar(firms);
+
+      // Admin için tüm firmalar, firma kullanıcısı için kendi firması
+      if (isAdmin) {
+        setFirmalar(firms);
+      } else if (firmaSonuc?.[0]) {
+        const f = firmaSonuc[0];
+        setFirmalar([{
+          id: f.id as string,
+          ad: f.ad as string,
+          email: f.email as string,
+          aktif: f.aktif as boolean,
+          paket: (f.paket as Firma["paket"]) || "starter",
+          addonlar: Array.isArray(f.addonlar)
+            ? (f.addonlar as Firma["addonlar"])
+            : typeof f.addonlar === "string"
+            ? JSON.parse(f.addonlar as string)
+            : [],
+          netgsm_user: f.netgsm_user as string | undefined,
+          netgsm_pass: f.netgsm_pass as string | undefined,
+          wa_api_key: f.wa_api_key as string | undefined,
+          wa_phone_id: f.wa_phone_id as string | undefined,
+        }]);
+      }
 
       if (!isAdmin && resolvedFirmaId) {
         const haliTurleri = await dbHaliTurleriniGetir(token, resolvedFirmaId);

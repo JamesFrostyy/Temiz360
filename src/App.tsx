@@ -171,13 +171,14 @@ export default function App() {
     showToast("Durum güncellendi!");
   };
 
-  const handleSms = async (durum: string, mesaj: string) => {
+  const handleSms = async (durum: string, mesaj: string, kanal: "wa_me" | "wa_api" | "sms") => {
     if (!user || !smsOrder) return;
     const yeniSmsDurum = { ...smsOrder.smsDurum, [durum]: true };
     await sbFetch(`siparisler?id=eq.${smsOrder.id}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ sms_durum: yeniSmsDurum }) }, user.token);
-    await sbFetch("sms_log", { method: "POST", body: JSON.stringify({ siparis_id: smsOrder.id, telefon: smsOrder.telefon, mesaj, durum_adi: durum }) }, user.token);
+    await sbFetch("sms_log", { method: "POST", body: JSON.stringify({ siparis_id: smsOrder.id, telefon: smsOrder.telefon, mesaj, durum_adi: durum, kanal }) }, user.token);
     setOrders((prev) => prev.map((o) => o.id === smsOrder.id ? { ...o, smsDurum: yeniSmsDurum } : o));
-    showToast("WhatsApp açıldı!");
+    const kanalLabel = kanal === "wa_me" ? "WhatsApp açıldı!" : kanal === "wa_api" ? "WA API ile gönderildi!" : "SMS gönderildi!";
+    showToast(kanalLabel);
   };
 
   const handleHaliTurleriSave = async (liste: HaliTuru[]) => {
@@ -424,9 +425,9 @@ export default function App() {
       </div>
 
       {/* Modallar */}
-      {sel && <DetailSheet order={orders.find((o) => o.id === sel.id) || null} ht={ht} isAdmin={isAdmin} onClose={() => setSel(null)} onStatusChange={handleStatus} onEdit={(o) => { setEditing(o); setShowOrder(true); setSel(null); }} onSmsOpen={(o) => { setSmsOrder(o); setSel(null); }} onDelete={async (id) => { if (!user) return; await sbFetch("hali_kalemleri?siparis_id=eq." + id, { method: "DELETE", prefer: "return=minimal" }, user.token); await sbFetch("siparisler?id=eq." + id, { method: "DELETE", prefer: "return=minimal" }, user.token); setOrders((prev) => prev.filter((o) => o.id !== id)); setSel(null); showToast("Sipariş silindi!"); }} />}
+      {sel && <DetailSheet order={orders.find((o) => o.id === sel.id) || null} ht={ht} isAdmin={isAdmin} firma={isAdmin ? null : firmalar.find((f) => f.id === firmaId) ?? null} onClose={() => setSel(null)} onStatusChange={handleStatus} onEdit={(o) => { setEditing(o); setShowOrder(true); setSel(null); }} onSmsOpen={(o) => { setSmsOrder(o); setSel(null); }} onDelete={!isAdmin ? async (id) => { if (!user) return; await sbFetch("hali_kalemleri?siparis_id=eq." + id, { method: "DELETE", prefer: "return=minimal" }, user.token); await sbFetch("siparisler?id=eq." + id, { method: "DELETE", prefer: "return=minimal" }, user.token); setOrders((prev) => prev.filter((o) => o.id !== id)); setSel(null); showToast("Sipariş silindi!"); } : undefined} />}
       {showOrder && <OrderModal order={editing} ht={ht} firmalar={firmalar} isAdmin={isAdmin} token={user!.token} firmaId={firmaId} onClose={() => { setEditing(null); setShowOrder(false); }} onSave={handleSave} />}
-      {smsOrder && <SmsModal order={smsOrder} ht={ht} firmaAd={isAdmin ? smsOrder.firmaAd || "" : firmaAd} onClose={() => setSmsOrder(null)} onSend={handleSms} />}
+      {smsOrder && <SmsModal order={smsOrder} ht={ht} firmaAd={isAdmin ? smsOrder.firmaAd || "" : firmaAd} firma={isAdmin ? null : firmalar.find((f) => f.id === firmaId) ?? null} onClose={() => setSmsOrder(null)} onSend={handleSms} />}
       {showHali && !isAdmin && <HaliModal turler={ht} onClose={() => setShowHali(false)} onSave={handleHaliTurleriSave} />}
       {showFirma && isAdmin && <FirmaModal token={user!.token} onClose={() => setShowFirma(false)} onSaved={yukle} />}
       {showMusteriGecmisi && musteriData && <MusteriGecmisi musteriAd={musteriData.ad} musteriTelefon={musteriData.telefon} orders={orders} ht={ht} onClose={() => { setShowMusteriGecmisi(false); setMusteriData(null); }} onSiparisAc={(order) => { setSel(order); setShowMusteriGecmisi(false); setMusteriData(null); }} />}

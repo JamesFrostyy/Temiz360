@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Siparis, HaliTuru } from "../types";
+import { Siparis, HaliTuru, Firma, firmaOzellikVar } from "../types";
 import { STATUS_CONFIG } from "../constants";
 import { toplamAdet, toplamM2 } from "../lib/db";
 import { StatusBadge } from "./StatusBadge";
@@ -8,6 +7,7 @@ interface DetailSheetProps {
   order: Siparis | null;
   ht: HaliTuru[];
   isAdmin: boolean;
+  firma: Firma | null | undefined;
   onClose: () => void;
   onStatusChange: (id: string, durum: string) => void;
   onEdit: (order: Siparis) => void;
@@ -15,16 +15,33 @@ interface DetailSheetProps {
   onDelete?: (id: string) => void;
 }
 
-export function DetailSheet({ order, ht, isAdmin, onClose, onStatusChange, onEdit, onSmsOpen, onDelete }: DetailSheetProps) {
-  const [silConfirm, setSilConfirm] = useState(false);
+export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange, onEdit, onSmsOpen, onDelete }: DetailSheetProps) {
   if (!order) return null;
   const keys = Object.keys(STATUS_CONFIG);
   const idx = keys.indexOf(order.durum);
   const smsSayisi = Object.values(order.smsDurum || {}).filter(Boolean).length;
 
+  const hasWaApi = firmaOzellikVar(firma, "wa_api");
+  const hasSms = firmaOzellikVar(firma, "sms");
+
+  const bildirimLabel = () => {
+    const suffix = smsSayisi > 0 ? ` (${smsSayisi})` : "";
+    return `💬 Bildirim${suffix}`;
+  };
+
+  const paketRenk = firma?.paket === "enterprise" ? { bg: "#F5F3FF", color: "#8B5CF6", border: "#DDD6FE", label: "Enterprise" }
+    : firma?.paket === "pro" ? { bg: "#F0F9FF", color: "#0EA5E9", border: "#BAE6FD", label: "Pro" }
+    : { bg: "#EEF2FF", color: "#6366F1", border: "#C7D2FE", label: "Starter" };
+
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 800, fontFamily: "'Poppins', sans-serif" }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 800, fontFamily: "'Poppins', sans-serif" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "20px 20px 32px", width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={{ width: 40, height: 4, background: "#E2E8F0", borderRadius: 4, margin: "0 auto 20px" }} />
 
         {/* Başlık */}
@@ -34,7 +51,14 @@ export function DetailSheet({ order, ht, isAdmin, onClose, onStatusChange, onEdi
               {order.id}{isAdmin && order.firmaAd ? ` · 🏢 ${order.firmaAd}` : ""}
             </div>
             <div style={{ fontSize: 22, fontWeight: 800, color: "#0F172A", margin: "4px 0 8px" }}>{order.musteri}</div>
-            <StatusBadge durum={order.durum} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <StatusBadge durum={order.durum} />
+              {!isAdmin && firma?.paket && (
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: paketRenk.bg, color: paketRenk.color, border: `1px solid ${paketRenk.border}` }}>
+                  {paketRenk.label}
+                </span>
+              )}
+            </div>
           </div>
           <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
@@ -61,7 +85,7 @@ export function DetailSheet({ order, ht, isAdmin, onClose, onStatusChange, onEdi
                     </div>
                     <div style={{ fontSize: 10, color: done ? "#334155" : "#94A3B8", fontWeight: cur ? 700 : 500, textAlign: "center", maxWidth: 50 }}>{cfg.label}</div>
                     {order.smsDurum?.[s] && (
-                      <div style={{ fontSize: 9, background: "#D1FAE5", color: "#065F46", padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>SMS</div>
+                      <div style={{ fontSize: 9, background: "#D1FAE5", color: "#065F46", padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>✓ Gönderildi</div>
                     )}
                   </div>
                   {i < keys.length - 1 && (
@@ -145,29 +169,24 @@ export function DetailSheet({ order, ht, isAdmin, onClose, onStatusChange, onEdi
         </div>
 
         {/* Aksiyonlar */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: onDelete ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
           <button onClick={() => onEdit(order)} style={{ padding: 14, borderRadius: 12, border: "none", background: "#EFF6FF", color: "#2563EB", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>
             ✏️ Düzenle
           </button>
           <button onClick={() => onSmsOpen(order)} style={{ padding: 14, borderRadius: 12, border: "none", background: "#F0FDF4", color: "#059669", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>
-            💬 WhatsApp {smsSayisi > 0 ? `(${smsSayisi})` : ""}
+            {bildirimLabel()}
           </button>
+          {onDelete && (
+            <button onClick={() => onDelete(order.id)} style={{ padding: 14, borderRadius: 12, border: "none", background: "#FEF2F2", color: "#DC2626", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>
+              🗑️ Sil
+            </button>
+          )}
         </div>
-        {onDelete && !isAdmin && (
-          <div style={{ marginTop: 10 }}>
-            {silConfirm ? (
-              <div style={{ background: "#FEF2F2", borderRadius: 12, padding: "12px 16px", border: "1px solid #FECACA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 13, color: "#991B1B", fontWeight: 600 }}>⚠️ Siparişi silmek istiyor musunuz?</span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => setSilConfirm(false)} style={{ background: "#fff", border: "1px solid #FECACA", color: "#475569", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>İptal</button>
-                  <button onClick={() => { onDelete(order.id); onClose(); }} style={{ background: "#DC2626", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>Evet, Sil</button>
-                </div>
-              </div>
-            ) : (
-              <button onClick={() => setSilConfirm(true)} style={{ width: "100%", padding: 12, borderRadius: 12, border: "none", background: "#FEF2F2", color: "#DC2626", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}>
-                🗑️ Siparişi Sil
-              </button>
-            )}
+
+        {/* Starter paket upsell uyarısı */}
+        {!isAdmin && firma?.paket === "starter" && (
+          <div style={{ marginTop: 12, padding: "10px 14px", background: "#FFF7ED", borderRadius: 10, border: "1px solid #FED7AA", fontSize: 12, color: "#92400E", textAlign: "center" }}>
+            💡 <strong>Pro pakete geçin</strong> — WhatsApp Business API ve SMS ile müşterilere otomatik bildirim gönderin.
           </div>
         )}
       </div>
