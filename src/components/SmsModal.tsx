@@ -10,6 +10,7 @@ interface SmsModalProps {
   firma: Firma | null | undefined;
   onClose: () => void;
   onSend: (durum: string, mesaj: string, kanal: "wa_me" | "wa_api" | "sms") => Promise<void>;
+  onError: (msg: string) => void;
 }
 
 type Kanal = "wa_me" | "wa_api" | "sms";
@@ -38,10 +39,12 @@ const KANAL_BILGI: Record<Kanal, { label: string; icon: string; renk: string; bg
   },
 };
 
-export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend }: SmsModalProps) {
+export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError }: SmsModalProps) {
   const [sel, setSel] = useState<string | null>(null);
   const [kanal, setKanal] = useState<Kanal>("wa_me");
   const [sending, setSending] = useState(false);
+  // wa_me için onay adımı
+  const [waBekleniyor, setWaBekleniyor] = useState(false);
 
   const hasWaApi = firmaOzellikVar(firma, "wa_api");
   const hasSms = firmaOzellikVar(firma, "sms");
@@ -58,10 +61,15 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend }: SmsModa
       else if (tel.startsWith("5")) tel = "90" + tel;
 
       if (kanal === "wa_me") {
-        // Manuel: WA aç
+        // WhatsApp'ı aç
         window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, "_blank");
-      } else if (kanal === "wa_api") {
-        // WA Business API — firma wa_api_key ve wa_phone_id ile gönder
+        // Onay ekranına geç — window.confirm kullanmıyoruz
+        setSending(false);
+        setWaBekleniyor(true);
+        return;
+      }
+
+      if (kanal === "wa_api") {
         if (firma?.wa_api_key && firma?.wa_phone_id) {
           await fetch(
             `https://graph.facebook.com/v18.0/${firma.wa_phone_id}/messages`,
@@ -80,17 +88,16 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend }: SmsModa
             }
           );
         } else {
-          alert("WhatsApp API bilgileri eksik. Admin panelinden firma ayarlarını güncelleyin.");
+          onError("WhatsApp API bilgileri eksik. Admin panelinden firma ayarlarını güncelleyin.");
           setSending(false);
           return;
         }
       } else if (kanal === "sms") {
-        // Merkezi Netgsm hesabı — .env'den gelir
         const netgsmUser = process.env.REACT_APP_NETGSM_USER;
         const netgsmPass = process.env.REACT_APP_NETGSM_PASS;
 
         if (!netgsmUser || !netgsmPass) {
-          alert("SMS yapılandırması eksik. Lütfen yönetici ile iletişime geçin.");
+          onError("SMS yapılandırması eksik. Lütfen yönetici ile iletişime geçin.");
           setSending(false);
           return;
         }
@@ -100,17 +107,15 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend }: SmsModa
           password: netgsmPass,
           gsmno: tel,
           message: txt,
-          msgheader: firmaAd.slice(0, 11), // Müşteri firma adını görür
+          msgheader: firmaAd.slice(0, 11),
           dil: "TR",
         });
 
         const res = await fetch(`https://api.netgsm.com.tr/sms/send/get/?${params.toString()}`);
         const resText = await res.text();
 
-        // Netgsm başarı kodları: 00, 01, 02
         if (!resText.startsWith("00") && !resText.startsWith("01") && !resText.startsWith("02")) {
-          console.error("Netgsm yanıtı:", resText);
-          alert(`SMS gönderilemedi. Hata kodu: ${resText}`);
+          onError(`SMS gönderilemedi. Hata kodu: ${resText}`);
           setSending(false);
           return;
         }
@@ -120,14 +125,86 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend }: SmsModa
       onClose();
     } catch (e) {
       console.error("Gönderim hatası:", e);
-      alert("Gönderim sırasında bir hata oluştu.");
+      onError("Gönderim sırasında bir hata oluştu.");
     } finally {
       setSending(false);
     }
   };
 
+  // wa_me: kullanıcı "Evet, gönderdim" dedi → log yaz
+  const waOnayEvet = async () => {
+    if (!sel) return;
+    setSending(true);
+    try {
+      await onSend(sel, txt, "wa_me");
+      onClose();
+    } catch {
+      onError("Log kaydedilemedi.");
+    } finally {
+      setSending(false);
+      setWaBekleniyor(false);
+    }
+  };
+
+  // wa_me: kullanıcı "Hayır, göndermedi" dedi → log yazma, geri dön
+  const waOnayHayir = () => {
+    setWaBekleniyor(false);
+    setSending(false);
+  };
+
   const kanalInfo = KANAL_BILGI[kanal];
 
+  // ─── wa_me ONAY EKRANI ───────────────────────────────────────────────────────
+  if (waBekleniyor) {
+    return (
+      <div
+        style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, fontFamily: "'Poppins', sans-serif" }}
+      >
+        <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "28px 24px 40px", width: "100%", maxWidth: 600 }}>
+          <div style={{ width: 40, height: 4, background: "#E2E8F0", borderRadius: 4, margin: "0 auto 24px" }} />
+
+          {/* İkon */}
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#0F172A" }}>
+              WhatsApp açıldı
+            </h2>
+            <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 15, lineHeight: 1.5 }}>
+              Mesajı <strong>{order.musteri}</strong>'e gönderebildiniz mi?
+            </p>
+          </div>
+
+          {/* Mesaj özeti */}
+          <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "#15803D", lineHeight: 1.5 }}>
+            {txt}
+          </div>
+
+          {/* Butonlar */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <button
+              onClick={waOnayHayir}
+              style={{ padding: 16, borderRadius: 12, border: "1.5px solid #E2E8F0", background: "#fff", color: "#64748B", cursor: "pointer", fontWeight: 700, fontSize: 15, fontFamily: "inherit" }}
+            >
+              ✕ Gönderemedim
+            </button>
+            <button
+              onClick={waOnayEvet}
+              disabled={sending}
+              style={{ padding: 16, borderRadius: 12, border: "none", background: "#25D366", color: "#fff", cursor: sending ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 15, fontFamily: "inherit" }}
+            >
+              {sending ? "Kaydediliyor..." : "✓ Gönderdim"}
+            </button>
+          </div>
+
+          <p style={{ textAlign: "center", fontSize: 12, color: "#94A3B8", marginTop: 16, marginBottom: 0 }}>
+            "Gönderemedim" seçerseniz kayıt tutulmaz
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── ANA MODAL ───────────────────────────────────────────────────────────────
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, fontFamily: "'Poppins', sans-serif" }}

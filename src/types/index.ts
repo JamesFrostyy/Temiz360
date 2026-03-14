@@ -164,3 +164,11 @@ export interface AuthUser {
   token: string;
   rol?: string | null;
 }
+export interface AuthUser {
+  id: string;
+  email: string;
+  token: string;
+  rol?: string | null;
+  refreshToken?: string;   // ← ekle
+  expiresIn?: number;      // ← ekle
+}

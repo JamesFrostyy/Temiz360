@@ -44,7 +44,7 @@ export function OrderModal({ order, ht, firmalar, isAdmin, token, firmaId: propF
   const [telefon, setTelefon] = useState("");
   const [adres, setAdres] = useState("");
   const [notlar, setNotlar] = useState("");
-  const [tarih, setTarih] = useState(bugun());
+  const [tarih, setTarih] = useState<string>(order?.tarih || bugun());
   const [firmaId, setFirmaId] = useState("");
   const [kalemler, setKalemler] = useState<HaliKalemi[]>([]);
   const [saving, setSaving] = useState(false);
@@ -144,14 +144,24 @@ export function OrderModal({ order, ht, firmalar, isAdmin, token, firmaId: propF
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 1000, fontFamily: "'Poppins', sans-serif" }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "20px 20px 40px", width: "100%", maxWidth: 600, maxHeight: "92vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 1000, fontFamily: "'Poppins', sans-serif" }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "20px 20px 40px", width: "100%", maxWidth: 600, maxHeight: "92vh", overflowY: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={{ width: 40, height: 4, background: "#E2E8F0", borderRadius: 4, margin: "0 auto 20px" }} />
+
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
             {order ? "✏️ Siparişi Düzenle" : "➕ Yeni Sipariş"}
           </h2>
-          <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}>✕</button>
+          <button
+            onClick={onClose}
+            style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}
+          >✕</button>
         </div>
 
         {/* Admin: Firma Seç */}
@@ -203,22 +213,49 @@ export function OrderModal({ order, ht, firmalar, isAdmin, token, firmaId: propF
             )}
           </div>
 
+          {/* Telefon */}
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Telefon</label>
-            <input style={inp} value={telefon} onChange={(e) => setTelefon(e.target.value)} placeholder="05XX XXX XX XX" type="tel" />
+            <input
+              style={inp}
+              value={telefon}
+              onChange={(e) => setTelefon(e.target.value)}
+              placeholder="05XX XXX XX XX"
+              type="tel"
+            />
           </div>
+
+          {/* Adres */}
           <div>
             <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Adres</label>
-            <input style={inp} value={adres} onChange={(e) => setAdres(e.target.value)} placeholder="Teslimat adresi" />
+            <input
+              style={inp}
+              value={adres}
+              onChange={(e) => setAdres(e.target.value)}
+              placeholder="Teslimat adresi"
+            />
           </div>
+
+          {/* Tarih + Notlar yan yana */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Tarih</label>
-              <input style={inp} type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} />
+              <input
+                style={inp}
+                type="date"
+                value={tarih}
+                onChange={(e) => setTarih(e.target.value)}
+                max={bugun()}
+              />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Notlar</label>
-              <input style={inp} value={notlar} onChange={(e) => setNotlar(e.target.value)} placeholder="Opsiyonel not" />
+              <input
+                style={inp}
+                value={notlar}
+                onChange={(e) => setNotlar(e.target.value)}
+                placeholder="Opsiyonel not"
+              />
             </div>
           </div>
         </div>
@@ -229,7 +266,10 @@ export function OrderModal({ order, ht, firmalar, isAdmin, token, firmaId: propF
             <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>
               Halı Kalemleri ({toplamAdet(kalemler)} adet · {toplamM2(kalemler)} m²)
             </label>
-            <button onClick={kalemEkle} style={{ background: "#EFF6FF", color: "#2563EB", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Ekle</button>
+            <button
+              onClick={kalemEkle}
+              style={{ background: "#EFF6FF", color: "#2563EB", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            >+ Ekle</button>
           </div>
 
           {kalemler.length === 0 ? (
@@ -244,23 +284,44 @@ export function OrderModal({ order, ht, firmalar, isAdmin, token, firmaId: propF
                 return (
                   <div key={i} style={{ background: "#F8FAFC", borderRadius: 12, padding: 12, border: "1px solid #E2E8F0" }}>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginBottom: 8 }}>
-                      <select style={{ ...inp, background: "#fff" }} value={k.turId} onChange={(e) => kalemGuncelle(i, "turId", e.target.value)}>
-                        {ht.map((t) => <option key={t.id} value={t.id}>{t.icon} {t.ad} — ₺{t.birimFiyat}/m²</option>)}
+                      <select
+                        style={{ ...inp, background: "#fff" }}
+                        value={k.turId}
+                        onChange={(e) => kalemGuncelle(i, "turId", e.target.value)}
+                      >
+                        {ht.map((t) => (
+                          <option key={t.id} value={t.id}>{t.icon} {t.ad} — ₺{t.birimFiyat}/m²</option>
+                        ))}
                       </select>
-                      <button onClick={() => kalemSil(i)} style={{ background: "#FEE2E2", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: "#DC2626", fontSize: 16, flexShrink: 0 }}>✕</button>
+                      <button
+                        onClick={() => kalemSil(i)}
+                        style={{ background: "#FEE2E2", border: "none", borderRadius: 8, width: 36, height: 36, cursor: "pointer", color: "#DC2626", fontSize: 16, flexShrink: 0 }}
+                      >✕</button>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                       <div>
                         <label style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", display: "block", marginBottom: 4 }}>ADET</label>
-                        <input style={{ ...inp, textAlign: "center" }} type="number" min="1" value={k.adet} onChange={(e) => kalemGuncelle(i, "adet", e.target.value)} />
+                        <input
+                          style={{ ...inp, textAlign: "center" }}
+                          type="number" min="1"
+                          value={k.adet}
+                          onChange={(e) => kalemGuncelle(i, "adet", e.target.value)}
+                        />
                       </div>
                       <div>
                         <label style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", display: "block", marginBottom: 4 }}>M²</label>
-                        <input style={{ ...inp, textAlign: "center" }} type="number" min="0" step="0.5" value={k.m2} onChange={(e) => kalemGuncelle(i, "m2", e.target.value)} />
+                        <input
+                          style={{ ...inp, textAlign: "center" }}
+                          type="number" min="0" step="0.5"
+                          value={k.m2}
+                          onChange={(e) => kalemGuncelle(i, "m2", e.target.value)}
+                        />
                       </div>
                       <div>
                         <label style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", display: "block", marginBottom: 4 }}>TUTAR</label>
-                        <div style={{ ...inp, textAlign: "center", background: "#F0FDF4", color: "#059669", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>₺{kalemTutar}</div>
+                        <div style={{ ...inp, textAlign: "center", background: "#F0FDF4", color: "#059669", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          ₺{kalemTutar}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -278,9 +339,15 @@ export function OrderModal({ order, ht, firmalar, isAdmin, token, firmaId: propF
           </div>
         )}
 
-        {err && <div style={{ color: "#DC2626", fontSize: 13, marginBottom: 12, fontWeight: 600 }}>❌ {err}</div>}
+        {err && (
+          <div style={{ color: "#DC2626", fontSize: 13, marginBottom: 12, fontWeight: 600 }}>❌ {err}</div>
+        )}
 
-        <button onClick={handleSave} disabled={saving} style={{ width: "100%", padding: 16, borderRadius: 12, border: "none", background: saving ? "#E2E8F0" : "linear-gradient(135deg,#2563EB,#3B82F6)", color: saving ? "#94A3B8" : "#fff", cursor: saving ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 16, fontFamily: "inherit" }}>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{ width: "100%", padding: 16, borderRadius: 12, border: "none", background: saving ? "#E2E8F0" : "linear-gradient(135deg,#2563EB,#3B82F6)", color: saving ? "#94A3B8" : "#fff", cursor: saving ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 16, fontFamily: "inherit" }}
+        >
           {saving ? "Kaydediliyor..." : order ? "Değişiklikleri Kaydet" : "Siparişi Oluştur"}
         </button>
       </div>

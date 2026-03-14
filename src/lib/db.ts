@@ -90,38 +90,104 @@ export async function dbFirmaSil(token: string, id: string): Promise<void> {
   await sbFetch(`firmalar?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, token);
 }
 
-export async function dbKaydet(form: { musteri: string; telefon: string; adres: string; notlar: string; tarih: string; firmaId: string; haliKalemleri: HaliKalemi[]; }, editId: string | null, ht: HaliTuru[], token: string, firmaId?: string): Promise<string> {
+export async function dbKaydet(
+  form: { musteri: string; telefon: string; adres: string; notlar: string; tarih: string; firmaId: string; haliKalemleri: HaliKalemi[] },
+  editId: string | null,
+  ht: HaliTuru[],
+  token: string,
+  firmaId?: string
+): Promise<string> {
   const id = editId || `SP-${String(Date.now()).slice(-6)}`;
+
   const topFiyat = form.haliKalemleri.reduce((sum, k) => {
     const tur = ht.find((t) => t.id === k.turId);
     return sum + (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1);
   }, 0);
-  const siparisData = { id, musteri_ad: form.musteri, telefon: form.telefon, adres: form.adres, notlar: form.notlar, tarih: form.tarih, fiyat: topFiyat, durum: "bekliyor", firma_id: firmaId || form.firmaId || null };
+
   if (editId) {
-    await sbFetch(`siparisler?id=eq.${editId}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ ...siparisData, id: undefined }) }, token);
-    await sbFetch(`hali_kalemleri?siparis_id=eq.${editId}`, { method: "DELETE", prefer: "return=minimal" }, token);
+    // Edit: sadece müşteri bilgilerini ve fiyatı güncelle — durum DOKUNULMAZ
+    const editData = {
+      musteri_ad: form.musteri,
+      telefon: form.telefon,
+      adres: form.adres,
+      notlar: form.notlar,
+      fiyat: topFiyat,
+    };
+    await sbFetch(
+      `siparisler?id=eq.${editId}`,
+      { method: "PATCH", prefer: "return=minimal", body: JSON.stringify(editData) },
+      token
+    );
+    await sbFetch(
+      `hali_kalemleri?siparis_id=eq.${editId}`,
+      { method: "DELETE", prefer: "return=minimal" },
+      token
+    );
   } else {
-    await sbFetch("siparisler", { method: "POST", body: JSON.stringify(siparisData) }, token);
+    // Yeni sipariş
+    const yeniData = {
+      id,
+      musteri_ad: form.musteri,
+      telefon: form.telefon,
+      adres: form.adres,
+      notlar: form.notlar,
+      tarih: form.tarih,
+      fiyat: topFiyat,
+      durum: "bekliyor",
+      firma_id: firmaId || form.firmaId || null,
+      sms_durum: {},
+    };
+    await sbFetch(
+      "siparisler",
+      { method: "POST", body: JSON.stringify(yeniData) },
+      token
+    );
   }
+
   const aktifFirmaId = firmaId || form.firmaId;
-  if (aktifFirmaId) { await dbMusteriKaydet(token, aktifFirmaId, form.musteri, form.telefon, form.adres); }
+  if (aktifFirmaId) {
+    await dbMusteriKaydet(token, aktifFirmaId, form.musteri, form.telefon, form.adres);
+  }
+
   const kalemler = form.haliKalemleri.map((k) => {
     const tur = ht.find((t) => t.id === k.turId);
-    return { siparis_id: id, tur_id: k.turId, adet: k.adet, m2: k.m2, birim_fiyat: tur?.birimFiyat || 0, tutar: (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1) };
+    return {
+      siparis_id: id,
+      tur_id: k.turId,
+      adet: k.adet,
+      m2: k.m2,
+      birim_fiyat: tur?.birimFiyat || 0,
+      tutar: (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1),
+    };
   });
-  if (kalemler.length > 0) { await sbFetch("hali_kalemleri", { method: "POST", body: JSON.stringify(kalemler) }, token); }
+
+  if (kalemler.length > 0) {
+    await sbFetch(
+      "hali_kalemleri",
+      { method: "POST", body: JSON.stringify(kalemler) },
+      token
+    );
+  }
+
   return id;
 }
 
 export async function dbSil(token: string, id: string): Promise<void> {
-  await sbFetch(`siparisler?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, token);
-}
-
-export async function dbMusteriAra(token: string, firmaId: string, aramaMetni: string): Promise<{ id: string; ad_soyad: string; telefon: string; adres: string }[]> {
-  if (!aramaMetni || aramaMetni.length < 2) return [];
-  try {
-    return await sbFetch(`musteriler?firma_id=eq.${firmaId}&ad_soyad=ilike.*${aramaMetni}*&select=id,ad_soyad,telefon,adres&limit=5`, {}, token) as { id: string; ad_soyad: string; telefon: string; adres: string }[];
-  } catch { return []; }
+  await sbFetch(
+    `hali_kalemleri?siparis_id=eq.${id}`,
+    { method: "DELETE", prefer: "return=minimal" },
+    token
+  );
+  await sbFetch(
+    `sms_log?siparis_id=eq.${id}`,
+    { method: "DELETE", prefer: "return=minimal" },
+    token
+  );
+  await sbFetch(
+    `siparisler?id=eq.${id}`,
+    { method: "DELETE", prefer: "return=minimal" },
+    token
+  );
 }
 
 export async function dbMusteriKaydet(token: string, firmaId: string, adSoyad: string, telefon: string, adres: string): Promise<void> {
@@ -131,4 +197,15 @@ export async function dbMusteriKaydet(token: string, firmaId: string, adSoyad: s
   } else {
     await sbFetch("musteriler", { method: "POST", body: JSON.stringify({ firma_id: firmaId, ad_soyad: adSoyad, telefon, adres }) }, token);
   }
+}
+
+export async function dbMusteriAra(token: string, firmaId: string, aramaMetni: string): Promise<{ id: string; ad_soyad: string; telefon: string; adres: string }[]> {
+  if (!aramaMetni || aramaMetni.length < 2) return [];
+  try {
+    return await sbFetch(
+      `musteriler?firma_id=eq.${firmaId}&ad_soyad=ilike.*${aramaMetni}*&select=id,ad_soyad,telefon,adres&limit=5`,
+      {},
+      token
+    ) as { id: string; ad_soyad: string; telefon: string; adres: string }[];
+  } catch { return []; }
 }

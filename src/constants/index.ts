@@ -2,7 +2,6 @@ import { StatusCfg } from "../types";
 
 export const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL!;
 export const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY!;
-export const ADMIN_EMAIL = process.env.REACT_APP_ADMIN_EMAIL!;
 
 export const STATUS_CONFIG: Record<string, StatusCfg> = {
   bekliyor:      { label: "Bekliyor",       color: "#F59E0B", bg: "#FEF3C7", icon: "⏳" },

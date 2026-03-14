@@ -12,7 +12,7 @@ interface DetailSheetProps {
   onStatusChange: (id: string, durum: string) => void;
   onEdit: (order: Siparis) => void;
   onSmsOpen: (order: Siparis) => void;
-  onDelete?: (id: string) => void;
+  onDelete?: (id: string) => void;  // ← Düzeltildi: JSX değil tip tanımı
 }
 
 export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange, onEdit, onSmsOpen, onDelete }: DetailSheetProps) {
@@ -29,8 +29,10 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
     return `💬 Bildirim${suffix}`;
   };
 
-  const paketRenk = firma?.paket === "enterprise" ? { bg: "#F5F3FF", color: "#8B5CF6", border: "#DDD6FE", label: "Enterprise" }
-    : firma?.paket === "pro" ? { bg: "#F0F9FF", color: "#0EA5E9", border: "#BAE6FD", label: "Pro" }
+  const paketRenk = firma?.paket === "enterprise"
+    ? { bg: "#F5F3FF", color: "#8B5CF6", border: "#DDD6FE", label: "Enterprise" }
+    : firma?.paket === "pro"
+    ? { bg: "#F0F9FF", color: "#0EA5E9", border: "#BAE6FD", label: "Pro" }
     : { bg: "#EEF2FF", color: "#6366F1", border: "#C7D2FE", label: "Starter" };
 
   return (
