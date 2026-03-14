@@ -50,15 +50,26 @@ export async function dbGetir(token: string, isAdmin: boolean): Promise<Siparis[
 export async function dbFirmalariGetir(token: string): Promise<Firma[]> {
   const raw = (await sbFetch("firmalar?select=*&order=olusturuldu.desc", {}, token)) as Record<string, unknown>[];
   return raw.map((f) => ({
-    id: f.id as string, ad: f.ad as string, email: f.email as string, aktif: f.aktif as boolean,
+    id: f.id as string,
+    ad: f.ad as string,
+    email: f.email as string,
+    aktif: f.aktif as boolean,
     paket: (f.paket as Firma["paket"]) || "starter",
     addonlar: Array.isArray(f.addonlar) ? (f.addonlar as Firma["addonlar"]) : typeof f.addonlar === "string" ? JSON.parse(f.addonlar) : [],
     netgsm_user: f.netgsm_user as string | undefined,
     netgsm_pass: f.netgsm_pass as string | undefined,
-    netgsm_baslik: f.netgsm_baslik as string | undefined,       
+    netgsm_baslik: f.netgsm_baslik as string | undefined,
     sms_kredisi: f.sms_kredisi as number | undefined,
     wa_api_key: f.wa_api_key as string | undefined,
     wa_phone_id: f.wa_phone_id as string | undefined,
+    yetkili_ad: f.yetkili_ad as string | undefined,
+    telefon: f.telefon as string | undefined,
+    hesap_durum: f.hesap_durum as Firma["hesap_durum"],
+    demo_baslangic: f.demo_baslangic as string | undefined,
+    demo_bitis: f.demo_bitis as string | undefined,
+    abonelik_baslangic: f.abonelik_baslangic as string | undefined,
+    son_odeme_tarihi: f.son_odeme_tarihi as string | undefined,
+    sonraki_odeme_tarihi: f.sonraki_odeme_tarihi as string | undefined,
   }));
 }
 
@@ -71,20 +82,22 @@ export async function dbFirmaEkle(
   const body: Record<string, unknown> = { ad, email, aktif: true };
   if (extra) {
     if (extra.paket) body.paket = extra.paket;
-    if (extra.addonlar) {
-      try { body.addonlar = JSON.parse(extra.addonlar); }
-      catch { body.addonlar = []; }
-    }
+    if (extra.addonlar) { try { body.addonlar = JSON.parse(extra.addonlar); } catch { body.addonlar = []; } }
     if (extra.netgsm_user) body.netgsm_user = extra.netgsm_user;
     if (extra.netgsm_pass) body.netgsm_pass = extra.netgsm_pass;
     if (extra.netgsm_baslik) body.netgsm_baslik = extra.netgsm_baslik;
     if (extra.wa_api_key) body.wa_api_key = extra.wa_api_key;
     if (extra.wa_phone_id) body.wa_phone_id = extra.wa_phone_id;
-    // ✅ YENİ firma için SMS kredisi
     body.sms_kredisi = extra.sms_kredisi ? Number(extra.sms_kredisi) : 50;
+    if (extra.yetkili_ad) body.yetkili_ad = extra.yetkili_ad;
+    if (extra.telefon) body.telefon = extra.telefon;
+    body.hesap_durum = "demo";
+    body.demo_baslangic = new Date().toISOString();
+    body.demo_bitis = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   }
   await sbFetch("firmalar", { method: "POST", body: JSON.stringify(body) }, token);
 }
+
 export async function dbFirmaGuncelle(
   token: string,
   id: string,
@@ -95,25 +108,22 @@ export async function dbFirmaGuncelle(
   const body: Record<string, unknown> = { ad, aktif };
   if (extra) {
     if (extra.paket) body.paket = extra.paket;
-    if (extra.addonlar !== undefined) {
-      try { body.addonlar = JSON.parse(extra.addonlar); }
-      catch { body.addonlar = []; }
-    }
+    if (extra.addonlar !== undefined) { try { body.addonlar = JSON.parse(extra.addonlar); } catch { body.addonlar = []; } }
     body.netgsm_user = extra.netgsm_user || null;
     body.netgsm_pass = extra.netgsm_pass || null;
-    body.netgsm_baslik = extra.netgsm_baslik || null;  // ← zaten var mı kontrol edin
+    body.netgsm_baslik = extra.netgsm_baslik || null;
     body.wa_api_key = extra.wa_api_key || null;
     body.wa_phone_id = extra.wa_phone_id || null;
-    // ✅ SMS KREDİSİ — string'den number'a çevir
-    if (extra.sms_kredisi !== undefined) {
-      body.sms_kredisi = Number(extra.sms_kredisi);
-    }
+    if (extra.sms_kredisi !== undefined) body.sms_kredisi = Number(extra.sms_kredisi);
+    body.yetkili_ad = extra.yetkili_ad || null;
+    body.telefon = extra.telefon || null;
+    if (extra.hesap_durum) body.hesap_durum = extra.hesap_durum;
+    if (extra.demo_bitis) body.demo_bitis = extra.demo_bitis;
+    if (extra.abonelik_baslangic) body.abonelik_baslangic = extra.abonelik_baslangic;
+    if (extra.son_odeme_tarihi) body.son_odeme_tarihi = extra.son_odeme_tarihi;
+    if (extra.sonraki_odeme_tarihi) body.sonraki_odeme_tarihi = extra.sonraki_odeme_tarihi;
   }
-  await sbFetch(
-    `firmalar?id=eq.${id}`,
-    { method: "PATCH", prefer: "return=minimal", body: JSON.stringify(body) },
-    token
-  );
+  await sbFetch(`firmalar?id=eq.${id}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify(body) }, token);
 }
 
 export async function dbFirmaSil(token: string, id: string): Promise<void> {
@@ -128,96 +138,30 @@ export async function dbKaydet(
   firmaId?: string
 ): Promise<string> {
   const id = editId || `SP-${String(Date.now()).slice(-6)}`;
-
   const topFiyat = form.haliKalemleri.reduce((sum, k) => {
     const tur = ht.find((t) => t.id === k.turId);
     return sum + (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1);
   }, 0);
-
   if (editId) {
-    // Edit: sadece müşteri bilgilerini ve fiyatı güncelle — durum DOKUNULMAZ
-    const editData = {
-      musteri_ad: form.musteri,
-      telefon: form.telefon,
-      adres: form.adres,
-      notlar: form.notlar,
-      fiyat: topFiyat,
-    };
-    await sbFetch(
-      `siparisler?id=eq.${editId}`,
-      { method: "PATCH", prefer: "return=minimal", body: JSON.stringify(editData) },
-      token
-    );
-    await sbFetch(
-      `hali_kalemleri?siparis_id=eq.${editId}`,
-      { method: "DELETE", prefer: "return=minimal" },
-      token
-    );
+    await sbFetch(`siparisler?id=eq.${editId}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ musteri_ad: form.musteri, telefon: form.telefon, adres: form.adres, notlar: form.notlar, fiyat: topFiyat }) }, token);
+    await sbFetch(`hali_kalemleri?siparis_id=eq.${editId}`, { method: "DELETE", prefer: "return=minimal" }, token);
   } else {
-    // Yeni sipariş
-    const yeniData = {
-      id,
-      musteri_ad: form.musteri,
-      telefon: form.telefon,
-      adres: form.adres,
-      notlar: form.notlar,
-      tarih: form.tarih,
-      fiyat: topFiyat,
-      durum: "bekliyor",
-      firma_id: firmaId || form.firmaId || null,
-      sms_durum: {},
-    };
-    await sbFetch(
-      "siparisler",
-      { method: "POST", body: JSON.stringify(yeniData) },
-      token
-    );
+    await sbFetch("siparisler", { method: "POST", body: JSON.stringify({ id, musteri_ad: form.musteri, telefon: form.telefon, adres: form.adres, notlar: form.notlar, tarih: form.tarih, fiyat: topFiyat, durum: "bekliyor", firma_id: firmaId || form.firmaId || null, sms_durum: {} }) }, token);
   }
-
   const aktifFirmaId = firmaId || form.firmaId;
-  if (aktifFirmaId) {
-    await dbMusteriKaydet(token, aktifFirmaId, form.musteri, form.telefon, form.adres);
-  }
-
+  if (aktifFirmaId) await dbMusteriKaydet(token, aktifFirmaId, form.musteri, form.telefon, form.adres);
   const kalemler = form.haliKalemleri.map((k) => {
     const tur = ht.find((t) => t.id === k.turId);
-    return {
-      siparis_id: id,
-      tur_id: k.turId,
-      adet: k.adet,
-      m2: k.m2,
-      birim_fiyat: tur?.birimFiyat || 0,
-      tutar: (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1),
-    };
+    return { siparis_id: id, tur_id: k.turId, adet: k.adet, m2: k.m2, birim_fiyat: tur?.birimFiyat || 0, tutar: (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1) };
   });
-
-  if (kalemler.length > 0) {
-    await sbFetch(
-      "hali_kalemleri",
-      { method: "POST", body: JSON.stringify(kalemler) },
-      token
-    );
-  }
-
+  if (kalemler.length > 0) await sbFetch("hali_kalemleri", { method: "POST", body: JSON.stringify(kalemler) }, token);
   return id;
 }
 
 export async function dbSil(token: string, id: string): Promise<void> {
-  await sbFetch(
-    `hali_kalemleri?siparis_id=eq.${id}`,
-    { method: "DELETE", prefer: "return=minimal" },
-    token
-  );
-  await sbFetch(
-    `sms_log?siparis_id=eq.${id}`,
-    { method: "DELETE", prefer: "return=minimal" },
-    token
-  );
-  await sbFetch(
-    `siparisler?id=eq.${id}`,
-    { method: "DELETE", prefer: "return=minimal" },
-    token
-  );
+  await sbFetch(`hali_kalemleri?siparis_id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, token);
+  await sbFetch(`sms_log?siparis_id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, token);
+  await sbFetch(`siparisler?id=eq.${id}`, { method: "DELETE", prefer: "return=minimal" }, token);
 }
 
 export async function dbMusteriKaydet(token: string, firmaId: string, adSoyad: string, telefon: string, adres: string): Promise<void> {
@@ -232,10 +176,6 @@ export async function dbMusteriKaydet(token: string, firmaId: string, adSoyad: s
 export async function dbMusteriAra(token: string, firmaId: string, aramaMetni: string): Promise<{ id: string; ad_soyad: string; telefon: string; adres: string }[]> {
   if (!aramaMetni || aramaMetni.length < 2) return [];
   try {
-    return await sbFetch(
-      `musteriler?firma_id=eq.${firmaId}&ad_soyad=ilike.*${aramaMetni}*&select=id,ad_soyad,telefon,adres&limit=5`,
-      {},
-      token
-    ) as { id: string; ad_soyad: string; telefon: string; adres: string }[];
+    return await sbFetch(`musteriler?firma_id=eq.${firmaId}&ad_soyad=ilike.*${aramaMetni}*&select=id,ad_soyad,telefon,adres&limit=5`, {}, token) as { id: string; ad_soyad: string; telefon: string; adres: string }[];
   } catch { return []; }
 }

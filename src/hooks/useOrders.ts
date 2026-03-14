@@ -56,6 +56,14 @@ export function useOrders(token: string, isAdmin: boolean, userEmail?: string) {
           sms_kredisi: f.sms_kredisi as number | undefined,       // ← EKLENDİ
           wa_api_key: f.wa_api_key as string | undefined,
           wa_phone_id: f.wa_phone_id as string | undefined,
+          yetkili_ad: f.yetkili_ad as string | undefined,
+          telefon: f.telefon as string | undefined,
+          hesap_durum: f.hesap_durum as Firma["hesap_durum"],
+          demo_baslangic: f.demo_baslangic as string | undefined,
+          demo_bitis: f.demo_bitis as string | undefined,
+          abonelik_baslangic: f.abonelik_baslangic as string | undefined,
+          son_odeme_tarihi: f.son_odeme_tarihi as string | undefined,
+          sonraki_odeme_tarihi: f.sonraki_odeme_tarihi as string | undefined,
         }]);
       }
 

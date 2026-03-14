@@ -44,6 +44,14 @@ export interface Firma {
   sms_kredisi?: number;
   wa_api_key?: string;
   wa_phone_id?: string;
+  yetkili_ad?: string;
+  telefon?: string;
+  hesap_durum?: "demo" | "aktif" | "gecikme" | "pasif" | "iptal";
+  demo_baslangic?: string;
+  demo_bitis?: string;
+  abonelik_baslangic?: string;
+  son_odeme_tarihi?: string;
+  sonraki_odeme_tarihi?: string;
 }
 
 // Paket tanımları
