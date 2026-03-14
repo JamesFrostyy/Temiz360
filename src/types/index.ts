@@ -62,6 +62,7 @@ export const PAKETLER: Record<PaketTip, {
     ozellikler: [
       'Sipariş yönetimi',
       'WhatsApp (wa.me)',
+      'SMS bildirimleri',
       'Fiyat listesi',
       'Müşteri rehberi',
     ],
@@ -74,7 +75,7 @@ export const PAKETLER: Record<PaketTip, {
     ozellikler: [
       'Starter özellikleri',
       'WhatsApp Business API',
-      'SMS bildirimleri (merkezi havuz)',
+      'SMS bildirimleri',
       'PDF fatura',
       'Gelişmiş raporlar',
     ],
