@@ -15,13 +15,18 @@ const SMS_PAKETLER: Record<string, { adet: number; ad: string }> = {
   "sms-1000": { adet: 1000, ad: "1000 SMS Paketi" },
 };
 
-// Abonelik paket tanımları
-const ABONELIK_PAKETLER: Record<string, { paket: string; ad: string }> = {
-  "yikanio-starter":    { paket: "starter",    ad: "Starter Abonelik" },
-  "yikanio-pro":        { paket: "pro",        ad: "Pro Abonelik" },
-  "yikanio-enterprise": { paket: "enterprise", ad: "Enterprise Abonelik" },
-};
+// Abonelik paket tanımları (Shopier Ürün ID'lerinizi buraya doğru girmelisiniz)
+const ABONELIK_PAKETLER: Record<string, { paket: string; ad: string; isYearly: boolean }> = {
+  // Aylık Shopier Ürün ID'leri
+  "45250042": { paket: "starter", ad: "Starter Aylık", isYearly: false },
+  "45250349": { paket: "pro", ad: "Pro Aylık", isYearly: false },
+  "45250439": { paket: "enterprise", ad: "Enterprise Aylık", isYearly: false },
 
+  // Yıllık Shopier Ürün ID'leri (Shopier'da yeni oluşturduğunuz yıllık ürünlerin ID'lerini buraya yazın)
+  "STARTER_YILLIK_ID_BURAYA": { paket: "starter", ad: "Starter Yıllık", isYearly: true },
+  "PRO_YILLIK_ID_BURAYA":     { paket: "pro", ad: "Pro Yıllık", isYearly: true },
+  "ENTERPRISE_YILLIK_ID_BURAYA": { paket: "enterprise", ad: "Enterprise Yıllık", isYearly: true },
+};
 // HMAC-SHA256 İmza Doğrulama Fonksiyonu
 async function verifyShopierSignature(secret: string, bodyText: string, signature: string): Promise<boolean> {
   if (!secret || !signature) return false;
@@ -108,31 +113,39 @@ serve(async (req) => {
       );
     }
 
-    // ── ABONELİK PAKETİ Mİ? ──
+    // ── ABONELİK PAKETİ Mİ? ─────────────────────────────────────────────
     if (ABONELIK_PAKETLER[product_id]) {
       const paketBilgi = ABONELIK_PAKETLER[product_id];
       const bugun = new Date().toISOString();
-      const birAySonra = new Date();
-      birAySonra.setMonth(birAySonra.getMonth() + 1);
+      const sonrakiTarih = new Date();
+      
+      // Yıllık paketse 1 yıl (12 ay), Aylık paketse 1 ay ekle
+      if (paketBilgi.isYearly) {
+        sonrakiTarih.setFullYear(sonrakiTarih.getFullYear() + 1);
+      } else {
+        sonrakiTarih.setMonth(sonrakiTarih.getMonth() + 1);
+      }
 
-      await supabase.from("firmalar")
+      await supabase
+        .from("firmalar")
         .update({
           paket: paketBilgi.paket,
           hesap_durum: "aktif",
           aktif: true,
           abonelik_baslangic: bugun,
           son_odeme_tarihi: bugun,
-          sonraki_odeme_tarihi: birAySonra.toISOString(),
+          sonraki_odeme_tarihi: sonrakiTarih.toISOString(),
         })
         .eq("id", firma.id);
 
+      // Log kaydet
       await supabase.from("bildirim_log").insert({
         firma_id: firma.id,
         tip: "abonelik_aktif",
         kanal: "shopier_webhook",
         basarili: true,
         tarih: new Date().toISOString(),
-        detay: JSON.stringify({ paket: paketBilgi.ad }),
+        detay: JSON.stringify({ paket: paketBilgi.ad, periyot: paketBilgi.isYearly ? "Yıllık" : "Aylık" }),
       });
 
       return new Response(

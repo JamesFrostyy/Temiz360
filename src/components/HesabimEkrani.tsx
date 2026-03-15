@@ -296,17 +296,16 @@ function OdemeModal({
     : (paketSirasi[mevcutIndex + 1] || mevcutPaket) as PaketTip;
 
   const [secilenPaket, setSecilenPaket] = useState<PaketTip>(varsayilanPaket);
-  const [isYearly, setIsYearly] = useState(true); // Yıllık ödeme varsayılan seçili gelir
+  const [isYearly, setIsYearly] = useState(true);
   const [yukleniyor, setYukleniyor] = useState(false);
 
   const secilenPaketBilgi = PAKETLER[secilenPaket];
   
-  // Tutar Hesaplamaları
   const aylikBirimFiyat = secilenPaketBilgi.fiyat;
-  const gosterilenAylikFiyat = isYearly ? Math.round(aylikBirimFiyat * 0.8) : aylikBirimFiyat; // %20 İndirim
+  const gosterilenAylikFiyat = isYearly ? Math.round(aylikBirimFiyat * 0.8) : aylikBirimFiyat; 
   const odenecekToplamTutar = isYearly ? gosterilenAylikFiyat * 12 : aylikBirimFiyat;
 
-  // Shopier linkleri — Aylık ve Yıllık için ayrı linklerinizi buraya girin
+  // Kendi Shopier linklerinizi buraya yazın
   const SHOPIER_LINKLER: Record<PaketTip, { aylik: string; yillik: string }> = {
     starter:    { aylik: "https://www.shopier.com/yikanio/45250042", yillik: "https://www.shopier.com/yikanio/STARTER_YILLIK" },
     pro:        { aylik: "https://www.shopier.com/yikanio/45250349", yillik: "https://www.shopier.com/yikanio/PRO_YILLIK" },
@@ -316,39 +315,16 @@ function OdemeModal({
   const shopierOdemeBaslat = async () => {
     setYukleniyor(true);
     try {
-      const bugun = new Date().toISOString();
-      const bas = new Date(bugun);
+      // DİKKAT: sbFetch İLE VERİTABANINA YAZMA İŞLEMİ BURADAN TAMAMEN KALDIRILDI!
       
-      // Yıllıksa 1 yıl, aylıksa 1 ay sonraya tarih at
-      if (isYearly) {
-        bas.setFullYear(bas.getFullYear() + 1);
-      } else {
-        bas.setMonth(bas.getMonth() + 1);
-      }
-      const sonrakiOdeme = bas.toISOString();
-
-      await sbFetch(
-        `firmalar?id=eq.${firma.id}`,
-        {
-          method: "PATCH",
-          prefer: "return=minimal",
-          body: JSON.stringify({
-            paket: secilenPaket,
-            abonelik_baslangic: bugun,
-            son_odeme_tarihi: bugun,
-            sonraki_odeme_tarihi: sonrakiOdeme,
-          }),
-        },
-        token
-      );
-
-      // Seçilen periyoda göre ilgili Shopier linkini aç
       const link = SHOPIER_LINKLER[secilenPaket][isYearly ? "yillik" : "aylik"];
       const url = `${link}?email=${encodeURIComponent(firma.email)}&name=${encodeURIComponent(firma.yetkili_ad || firma.ad)}`;
+      
       window.open(url, "_blank");
 
       setYukleniyor(false);
-      alert(`Shopier ödeme sayfası açıldı.\n\nÖdemeniz onaylandıktan sonra hesabınız aktif edilecektir.\n\nBilgi: info@yikanio.com`);
+      alert(`Shopier ödeme sayfası açıldı.\n\nÖdemeniz onaylandıktan sonra hesabınız sistem tarafından otomatik olarak aktif edilecektir.\n\nBilgi: info@yikanio.com`);
+      
       onBasarili();
     } catch (e) {
       setYukleniyor(false);
@@ -370,7 +346,6 @@ function OdemeModal({
           <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
 
-        {/* Ödeme Periyodu Seçici (Aylık / Yıllık Toggle) */}
         <div style={{ display: "flex", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 4, marginBottom: 20 }}>
           <button
             onClick={() => setIsYearly(false)}
@@ -386,7 +361,6 @@ function OdemeModal({
           </button>
         </div>
 
-        {/* Paket Seçici */}
         <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10, textTransform: "uppercase" }}>
           {mevcutDurum === "demo" ? "Başlamak istediğiniz paketi seçin" : "Yükseltmek istediğiniz paketi seçin"}
         </div>
@@ -432,7 +406,6 @@ function OdemeModal({
           })}
         </div>
 
-        {/* Sipariş Özeti */}
         <div style={{ background: "linear-gradient(135deg,#0F172A,#1E293B)", borderRadius: 16, padding: 20, marginBottom: 20, color: "#fff" }}>
           <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Sipariş Özeti</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -447,14 +420,12 @@ function OdemeModal({
           </div>
         </div>
 
-        {/* Güvenlik */}
         <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
           {["🔒 SSL şifreleme", "💳 Tüm kartlar", "🚫 Taahhüt yok"].map((item) => (
             <div key={item} style={{ fontSize: 12, color: "#64748B" }}>{item}</div>
           ))}
         </div>
 
-        {/* Ödeme Butonu */}
         <button
           onClick={shopierOdemeBaslat}
           disabled={yukleniyor || secilenPaket === mevcutPaket && mevcutDurum !== "demo"}
