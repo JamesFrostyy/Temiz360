@@ -3,12 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const SHOPIER_API_KEY = Deno.env.get("SHOPIER_API_KEY") || "";
 const SHOPIER_API_SECRET = Deno.env.get("SHOPIER_API_SECRET") || "";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// SMS paket tanımları — Shopier'daki ürün ID'leriyle eşleştirin
+// SMS paket tanımları
 const SMS_PAKETLER: Record<string, { adet: number; ad: string }> = {
   "sms-100":  { adet: 100,  ad: "100 SMS Paketi" },
   "sms-250":  { adet: 250,  ad: "250 SMS Paketi" },
@@ -23,17 +22,45 @@ const ABONELIK_PAKETLER: Record<string, { paket: string; ad: string }> = {
   "yikanio-enterprise": { paket: "enterprise", ad: "Enterprise Abonelik" },
 };
 
+// HMAC-SHA256 İmza Doğrulama Fonksiyonu
+async function verifyShopierSignature(secret: string, bodyText: string, signature: string): Promise<boolean> {
+  if (!secret || !signature) return false;
+  
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const hashBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(bodyText));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const expectedSignature = btoa(String.fromCharCode.apply(null, hashArray));
+  
+  return expectedSignature === signature;
+}
+
 serve(async (req) => {
-  // Sadece POST kabul et
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
   try {
-    const body = await req.json();
+    // 1. İsteğin ham (raw) gövdesini ve imza başlığını al
+    const bodyText = await req.text();
+    const signature = req.headers.get("x-shopier-signature"); // Shopier imza başlığı
 
-    // Shopier webhook payload
-    // Shopier'ın gönderdiği alanlar: order_id, email, product_id, status vb.
+    // 2. Güvenlik Kontrolü: İmza eşleşiyor mu?
+    const isValid = await verifyShopierSignature(SHOPIER_API_SECRET, bodyText, signature || "");
+    if (!isValid) {
+      console.error("Güvenlik İhlali: Geçersiz Shopier İmzası!");
+      return new Response(JSON.stringify({ ok: false, reason: "Yetkisiz işlem (Geçersiz İmza)" }), { status: 401 });
+    }
+
+    // 3. İmza doğruysa JSON'u ayrıştır
+    const body = JSON.parse(bodyText);
     const { email, product_id, status, payment_status } = body;
 
     // Sadece başarılı ödemeleri işle
@@ -58,18 +85,14 @@ serve(async (req) => {
 
     const firma = firmalar;
 
-    // ── SMS PAKETİ Mİ? ───────────────────────────────────────────────────
+    // ── SMS PAKETİ Mİ? ──
     if (SMS_PAKETLER[product_id]) {
       const paket = SMS_PAKETLER[product_id];
       const mevcutKredi = firma.sms_kredisi || 0;
       const yeniKredi = mevcutKredi + paket.adet;
 
-      await supabase
-        .from("firmalar")
-        .update({ sms_kredisi: yeniKredi })
-        .eq("id", firma.id);
+      await supabase.from("firmalar").update({ sms_kredisi: yeniKredi }).eq("id", firma.id);
 
-      // Log kaydet
       await supabase.from("bildirim_log").insert({
         firma_id: firma.id,
         tip: "sms_paket_satin_alindi",
@@ -85,15 +108,14 @@ serve(async (req) => {
       );
     }
 
-    // ── ABONELİK PAKETİ Mİ? ─────────────────────────────────────────────
+    // ── ABONELİK PAKETİ Mİ? ──
     if (ABONELIK_PAKETLER[product_id]) {
       const paketBilgi = ABONELIK_PAKETLER[product_id];
       const bugun = new Date().toISOString();
       const birAySonra = new Date();
       birAySonra.setMonth(birAySonra.getMonth() + 1);
 
-      await supabase
-        .from("firmalar")
+      await supabase.from("firmalar")
         .update({
           paket: paketBilgi.paket,
           hesap_durum: "aktif",
@@ -104,7 +126,6 @@ serve(async (req) => {
         })
         .eq("id", firma.id);
 
-      // Log kaydet
       await supabase.from("bildirim_log").insert({
         firma_id: firma.id,
         tip: "abonelik_aktif",
@@ -120,7 +141,6 @@ serve(async (req) => {
       );
     }
 
-    // Bilinmeyen ürün
     return new Response(
       JSON.stringify({ ok: false, reason: `Bilinmeyen ürün: ${product_id}` }),
       { status: 200 }
