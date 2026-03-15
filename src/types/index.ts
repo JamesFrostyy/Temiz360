@@ -68,11 +68,11 @@ export const PAKETLER: Record<PaketTip, {
     renk: '#6366F1',
     bg: '#EEF2FF',
     ozellikler: [
-      'Sipariş yönetimi',
-      'WhatsApp (wa.me)',
-      'SMS bildirimleri',
-      'Fiyat listesi',
-      'Müşteri rehberi',
+      'Sipariş yönetimi (Dijital Defter)',
+      'Manuel SMS Gönderimi',
+      'Aylık 50 SMS Hediye',
+      'Fiyat listesi & Müşteri rehberi',
+      'Temel raporlar',
     ],
   },
   pro: {
@@ -81,11 +81,11 @@ export const PAKETLER: Record<PaketTip, {
     renk: '#0EA5E9',
     bg: '#F0F9FF',
     ozellikler: [
-      'Starter özellikleri',
-      'WhatsApp Business API',
-      'SMS bildirimleri',
-      'PDF fatura',
-      'Gelişmiş raporlar',
+      'Starter paketindeki her şey',
+      'Otomatik SMS Bildirimleri',
+      'WhatsApp (wa.me) Entegrasyonu',
+      'Aylık 200 SMS Hediye',
+      'PDF fatura & Gelişmiş raporlar',
     ],
   },
   enterprise: {
@@ -94,10 +94,11 @@ export const PAKETLER: Record<PaketTip, {
     renk: '#8B5CF6',
     bg: '#F5F3FF',
     ozellikler: [
-      'Pro özellikleri',
-      'Çoklu şube',
-      'Öncelikli destek',
-      'Özel entegrasyonlar',
+      'Pro paketindeki her şey',
+      'WhatsApp Business API',
+      'Aylık 400 SMS Hediye',
+      'Çoklu şube yönetimi',
+      'Öncelikli destek & Özel entegrasyonlar',
     ],
   },
 };
@@ -125,14 +126,13 @@ export const ADDONLAR: Record<AddonTip, {
     minPaket: 'pro',
   },
 };
-
 // Paket yetki kontrolü — addon değil, paket bazlı
 export function firmaOzellikVar(
   firma: Firma | null | undefined,
   ozellik:
-    | 'wa_me'          // Tüm paketler
+    | 'wa_me'          // SADECE PRO+
     | 'wa_api'         // Pro+
-    | 'sms'            // Pro+
+    | 'sms'            // TÜM PAKETLER (Starter Manuel, Pro+ Otomatik)
     | 'pdf_fatura'     // Pro+
     | 'gelismis_raporlar' // Pro+
     | 'coklu_sube'     // Enterprise
@@ -142,20 +142,24 @@ export function firmaOzellikVar(
   const paket = firma.paket || 'starter';
 
   switch (ozellik) {
+    // 👇 WhatsApp, Fatura ve Gelişmiş Raporlar sadece Pro ve Kurumsal'a özel
     case 'wa_me':
-      return true;
     case 'wa_api':
     case 'pdf_fatura':
     case 'gelismis_raporlar':
       return paket === 'pro' || paket === 'enterprise';
+      
+    // 👇 SMS özelliği hepsinde var (Starter manuel kullanacak)
     case 'sms':
       return true;
+      
+    // 👇 Şube ve Destek sadece Kurumsal'a özel
     case 'coklu_sube':
     case 'oncelikli_destek':
       return paket === 'enterprise';
+      
     default:
       return false;
-      
   }
 }
 
