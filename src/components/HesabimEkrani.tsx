@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Firma, PAKETLER, PaketTip } from "../types";
 import { sbFetch } from "../lib/supabase";
+import { STATUS_CONFIG } from "../constants";
 
 interface HesabimEkraniProps {
   firma: Firma | null | undefined;
@@ -28,16 +29,42 @@ function tarihFormat(iso?: string): string {
   return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-// Bugünden N ay sonrasını ISO string olarak döner
-function birAySonra(baslangic?: string): string {
-  const bas = baslangic ? new Date(baslangic) : new Date();
-  const sonraki = new Date(bas);
-  sonraki.setMonth(sonraki.getMonth() + 1);
-  return sonraki.toISOString();
-}
-
 export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   const [showOdeme, setShowOdeme] = useState(false);
+  
+  // Arayüz state'leri
+  const [otoSmsAktif, setOtoSmsAktif] = useState(false);
+  const [otoSmsDurumlar, setOtoSmsDurumlar] = useState<string[]>([]);
+
+  // 1. ÇÖZÜM: Ana sistem bu kolonları çekmiyorsa, sayfa yüklendiğinde biz doğrudan çekeriz!
+  useEffect(() => {
+    if (!firma?.id) return;
+
+    const ayarlariGetir = async () => {
+      try {
+        // DÜZELTME BURADA: sbFetch zaten veriyi döndürüyor, res.json() yapmaya gerek yok ve TypeScript'e bunun bir dizi olduğunu (as any[]) söylüyoruz.
+        const data = (await sbFetch(`firmalar?id=eq.${firma.id}&select=oto_sms_aktif,oto_sms_durumlar`, {}, token)) as any[];
+        
+        if (data && data.length > 0) {
+          const f = data[0];
+          setOtoSmsAktif(f.oto_sms_aktif || false);
+          
+          let arr: string[] = [];
+          if (Array.isArray(f.oto_sms_durumlar)) {
+            arr = f.oto_sms_durumlar;
+          } else if (typeof f.oto_sms_durumlar === 'string') {
+            const str = (f.oto_sms_durumlar as string).replace(/^{|}$/g, '');
+            arr = str ? str.split(',') : [];
+          }
+          setOtoSmsDurumlar(arr);
+        }
+      } catch (err) {
+        console.error("Ayarlar veritabanından çekilemedi:", err);
+      }
+    };
+
+    ayarlariGetir();
+  }, [firma?.id, token]);
 
   if (!firma) {
     return (
@@ -57,9 +84,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   const paketSirasi: PaketTip[] = ["starter", "pro", "enterprise"];
   const mevcutIndex = paketSirasi.indexOf(paketKey);
 
-  // Yükseltme yapılabilecek paketler (mevcut dahil, aşağısı değil)
-  // Demo ise tüm paketler seçilebilir
-  // Aktif ise sadece mevcut ve üzeri
   const secilebilenPaketler = firma.hesap_durum === "demo"
     ? paketSirasi
     : paketSirasi.filter((_, i) => i >= mevcutIndex);
@@ -67,13 +91,11 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   return (
     <div style={{ maxWidth: 680, margin: "0 auto", padding: "24px 20px 100px", fontFamily: "'Poppins', sans-serif" }}>
 
-      {/* Başlık */}
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#0F172A" }}>👤 Hesabım</h2>
         <p style={{ margin: "4px 0 0", color: "#64748B", fontSize: 14 }}>Paket bilgileriniz ve kullanım durumunuz</p>
       </div>
 
-      {/* Hesap Durumu Banner */}
       <div style={{ background: durumCfg.bg, border: `1.5px solid ${durumCfg.border}`, borderRadius: 16, padding: "16px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ fontSize: 32 }}>{durumCfg.icon}</div>
         <div style={{ flex: 1 }}>
@@ -98,7 +120,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         )}
       </div>
 
-      {/* Firma + Paket */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", marginBottom: 12 }}>Firma & Paket</div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
@@ -124,7 +145,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         </div>
       </div>
 
-      {/* Demo Bilgisi */}
       {firma.hesap_durum === "demo" && (
         <div style={{ background: "#F5F3FF", border: "1.5px solid #DDD6FE", borderRadius: 16, padding: 20, marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#7C3AED", textTransform: "uppercase", marginBottom: 12 }}>🧪 Demo Süresi</div>
@@ -162,7 +182,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         </div>
       )}
 
-      {/* Abonelik & Ödeme Bilgisi */}
       {(firma.hesap_durum === "aktif" || firma.hesap_durum === "gecikme") && (
         <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", marginBottom: 14 }}>💳 Abonelik & Ödeme</div>
@@ -201,11 +220,98 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
             </div>
           )}
 
-          {/* Paket Yükseltme — sadece üst paket varsa göster */}
           {mevcutIndex < paketSirasi.length - 1 && (
             <button onClick={() => setShowOdeme(true)} style={{ marginTop: 14, width: "100%", padding: 12, borderRadius: 10, border: "1.5px dashed #CBD5E1", background: "#F8FAFC", color: "#475569", cursor: "pointer", fontWeight: 600, fontSize: 14, fontFamily: "inherit" }}>
               🚀 Paketi Yükselt
             </button>
+          )}
+        </div>
+      )}
+
+      {/* ─── OTOMASYON AYARLARI ─── */}
+      {(paketKey === "pro" || paketKey === "enterprise") && (
+        <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: otoSmsAktif ? 16 : 0 }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#065F46" }}>🤖 Otomatik SMS Asistanı</div>
+              <div style={{ fontSize: 12, color: "#059669", marginTop: 2 }}>Sipariş durumu değiştiğinde müşteriye kendiliğinden SMS gider.</div>
+            </div>
+            
+            {/* Şalter */}
+            <label style={{ position: "relative", display: "inline-block", width: 44, height: 24, flexShrink: 0 }}>
+              <input 
+                type="checkbox" 
+                style={{ opacity: 0, width: 0, height: 0 }}
+                checked={otoSmsAktif}
+                onChange={async (e) => {
+                  const yeniDurum = e.target.checked;
+                  
+                  // Arayüzü anında güncelle
+                  setOtoSmsAktif(yeniDurum);
+                  
+                  // Veritabanını güncelle
+                  try {
+                    await sbFetch(
+                      `firmalar?id=eq.${firma.id}`, 
+                      { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ oto_sms_aktif: yeniDurum }) }, 
+                      token
+                    );
+                  } catch (err) {
+                    setOtoSmsAktif(!yeniDurum); // Hata olursa arayüzü geri al
+                    alert("Ayar kaydedilemedi.");
+                  }
+                }}
+              />
+              <span style={{ position: "absolute", cursor: "pointer", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: otoSmsAktif ? "#059669" : "#CBD5E1", borderRadius: 34, transition: ".4s" }}>
+                <span style={{ position: "absolute", height: 18, width: 18, left: 3, bottom: 3, backgroundColor: "white", borderRadius: "50%", transition: ".4s", transform: otoSmsAktif ? "translateX(20px)" : "translateX(0)" }} />
+              </span>
+            </label>
+          </div>
+
+          {otoSmsAktif && (
+            <div style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1px solid #A7F3D0" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46", marginBottom: 10 }}>Hangi durumlarda mesaj atılsın?</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {Object.keys(STATUS_CONFIG).map((statusKey) => {
+                  const cfg = STATUS_CONFIG[statusKey];
+                  const secili = otoSmsDurumlar.includes(statusKey);
+                  
+                  return (
+                    <label key={statusKey} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#34D399", cursor: "pointer", padding: "8px 12px", border: `1px solid ${secili ? "#059669" : "#E2E8F0"}`, borderRadius: 8, background: secili ? "#ECFDF5" : "#fff", transition: "all 0.2s" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={secili}
+                        onChange={async (e) => {
+                          const isChecked = e.target.checked;
+                          
+                          // Arayüzü anında güncelle
+                          const yeniDurumlar = isChecked 
+                            ? [...otoSmsDurumlar, statusKey] 
+                            : otoSmsDurumlar.filter(x => x !== statusKey);
+                          setOtoSmsDurumlar(yeniDurumlar);
+
+                          // Veritabanını güncelle
+                          try {
+                            await sbFetch(
+                              `firmalar?id=eq.${firma.id}`, 
+                              { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ oto_sms_durumlar: yeniDurumlar }) }, 
+                              token
+                            );
+                          } catch (err) {
+                            // Hata olursa geri al
+                            setOtoSmsDurumlar(otoSmsDurumlar);
+                            alert("Durum ayarı kaydedilemedi.");
+                          }
+                        }}
+                      />
+                      <span style={{ color: secili ? "#065F46" : "#475569", fontWeight: secili ? 700 : 500 }}>
+                        {cfg.icon} {cfg.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -237,7 +343,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         )}
       </div>
 
-      {/* Paket Özellikleri */}
       <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase", marginBottom: 14 }}>Paket Özellikleri</div>
         <div style={{ display: "grid", gap: 10 }}>
@@ -252,13 +357,11 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         </div>
       </div>
 
-      {/* İletişim */}
       <div style={{ textAlign: "center", padding: "16px", background: "#F8FAFC", borderRadius: 12, border: "1px solid #E2E8F0", fontSize: 13, color: "#64748B" }}>
         Paket değişikliği, ödeme veya destek için:
         <a href="mailto:info@yikanio.com" style={{ color: "#2563EB", fontWeight: 700, marginLeft: 6, textDecoration: "none" }}>info@yikanio.com</a>
       </div>
 
-      {/* Ödeme Modal */}
       {showOdeme && (
         <OdemeModal
           firma={firma}
@@ -274,7 +377,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   );
 }
 
-// ─── ÖDEME MODALI ────────────────────────────────────────────────────────────
 interface OdemeModalProps {
   firma: Firma;
   token: string;
@@ -305,7 +407,6 @@ function OdemeModal({
   const gosterilenAylikFiyat = isYearly ? Math.round(aylikBirimFiyat * 0.8) : aylikBirimFiyat; 
   const odenecekToplamTutar = isYearly ? gosterilenAylikFiyat * 12 : aylikBirimFiyat;
 
-  // Kendi Shopier linklerinizi buraya yazın
   const SHOPIER_LINKLER: Record<PaketTip, { aylik: string; yillik: string }> = {
     starter:    { aylik: "https://www.shopier.com/yikanio/45250042", yillik: "https://www.shopier.com/yikanio/STARTER_YILLIK" },
     pro:        { aylik: "https://www.shopier.com/yikanio/45250349", yillik: "https://www.shopier.com/yikanio/PRO_YILLIK" },
@@ -315,8 +416,6 @@ function OdemeModal({
   const shopierOdemeBaslat = async () => {
     setYukleniyor(true);
     try {
-      // DİKKAT: sbFetch İLE VERİTABANINA YAZMA İŞLEMİ BURADAN TAMAMEN KALDIRILDI!
-      
       const link = SHOPIER_LINKLER[secilenPaket][isYearly ? "yillik" : "aylik"];
       const url = `${link}?email=${encodeURIComponent(firma.email)}&name=${encodeURIComponent(firma.yetkili_ad || firma.ad)}`;
       

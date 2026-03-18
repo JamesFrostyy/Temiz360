@@ -42,19 +42,22 @@ const KANAL_BILGI: Record<Kanal, { label: string; icon: string; renk: string; bg
 
 export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, onKrediDus }: SmsModalProps) {
   const [sel, setSel] = useState<string | null>(null);
-  const [kanal, setKanal] = useState<Kanal>("wa_me");
-  const [sending, setSending] = useState(false);
-  const [waBekleniyor, setWaBekleniyor] = useState(false);
-
+  
+  // 1. ÇÖZÜM: Yetkileri tam olarak tanımlıyoruz
+  const hasWaMe = firmaOzellikVar(firma, "wa_me");
   const hasWaApi = firmaOzellikVar(firma, "wa_api");
   const hasSms = firmaOzellikVar(firma, "sms");
+
+  // 2. ÇÖZÜM: Modal açıldığında eğer kullanıcının wa_me yetkisi yoksa (Starter), varsayılan olarak "sms" seçili gelsin!
+  const [kanal, setKanal] = useState<Kanal>(hasWaMe ? "wa_me" : "sms");
+  
+  const [sending, setSending] = useState(false);
+  const [waBekleniyor, setWaBekleniyor] = useState(false);
 
   const smsKredisi = firma?.sms_kredisi ?? 0;
   const kredisiYok = kanal === "sms" && smsKredisi <= 0;
 
-  // Firma özel SMS başlığı varsa onu kullan, yoksa firma adını kırp
   const smsBaslik = firma?.netgsm_baslik || firmaAd.slice(0, 11);
-
   const txt = sel ? smsMesaji(sel, order, ht, firmaAd) : "";
 
   const handleSend = async () => {
@@ -117,7 +120,7 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           password: netgsmPass,
           gsmno: tel,
           message: txt,
-          msgheader: smsBaslik, // ← Firma özel başlığı kullan
+          msgheader: smsBaslik,
           dil: "TR",
         });
 
@@ -129,8 +132,6 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           setSending(false);
           return;
         }
-
-        // SMS başarılı → App'e kredi düş sinyali gönder
         onKrediDus?.();
       }
 
@@ -165,7 +166,6 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
 
   const kanalInfo = KANAL_BILGI[kanal];
 
-  // ─── wa_me ONAY EKRANI ───────────────────────────────────────────────────────
   if (waBekleniyor) {
     return (
       <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, fontFamily: "'Poppins', sans-serif" }}>
@@ -204,7 +204,6 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
     );
   }
 
-  // ─── ANA MODAL ───────────────────────────────────────────────────────────────
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 2000, fontFamily: "'Poppins', sans-serif" }}
@@ -221,12 +220,10 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
 
-        {/* Müşteri bilgisi */}
         <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 14, color: "#334155", border: "1px solid #E2E8F0" }}>
           <strong>{order.musteri}</strong> · {order.telefon}
         </div>
 
-        {/* SMS Kredi Uyarıları */}
         {smsKredisi > 0 && smsKredisi <= 10 && (
           <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 14px", marginBottom: 16, fontSize: 13, color: "#92400E", display: "flex", alignItems: "center", gap: 8 }}>
             ⚠️ <span>SMS krediniz azalıyor: <strong>{smsKredisi} SMS</strong> kaldı.</span>
@@ -238,11 +235,13 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           </div>
         )}
 
-        {/* Kanal Seçici */}
         <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10, textTransform: "uppercase" }}>Kanal Seç</div>
         <div style={{ display: "grid", gap: 8, marginBottom: 20 }}>
           {(Object.entries(KANAL_BILGI) as [Kanal, typeof KANAL_BILGI[Kanal]][]).map(([k, info]) => {
-            const kilitli = (k === "wa_api" && !hasWaApi) || (k === "sms" && !hasSms);
+            
+            // 3. ÇÖZÜM: Kilit mantığına wa_me'yi de ekledik! Artık Starter'da kilitli olacak.
+            const kilitli = (k === "wa_api" && !hasWaApi) || (k === "sms" && !hasSms) || (k === "wa_me" && !hasWaMe);
+            
             const kredisiz = k === "sms" && smsKredisi <= 0;
             const secili = kanal === k;
             return (
@@ -265,6 +264,7 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: secili ? info.renk : (kilitli || kredisiz) ? "#94A3B8" : "#334155" }}>
                     {info.label}
+                    {/* 4. ÇÖZÜM: WA.me kilitli olduğunda da "Pro gerekli" rozeti çıkacak */}
                     {kilitli && <span style={{ marginLeft: 6, fontSize: 10, background: "#FEF3C7", color: "#92400E", padding: "2px 6px", borderRadius: 10, fontWeight: 700 }}>Pro gerekli</span>}
                     {kredisiz && <span style={{ marginLeft: 6, fontSize: 10, background: "#FEE2E2", color: "#DC2626", padding: "2px 6px", borderRadius: 10, fontWeight: 700 }}>Kredi yok</span>}
                     {k === "sms" && !kilitli && !kredisiz && (
@@ -288,7 +288,6 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           })}
         </div>
 
-        {/* Durum Seçici */}
         <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10, textTransform: "uppercase" }}>Bildirim Türü</div>
         <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
           {Object.keys(STATUS_CONFIG).filter((s) => s !== "bekliyor").map((s) => {
@@ -313,7 +312,6 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           })}
         </div>
 
-        {/* Mesaj önizleme */}
         {txt && (
           <div style={{ background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 12, padding: 16, marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#166534", marginBottom: 8 }}>
@@ -328,7 +326,6 @@ export function SmsModal({ order, ht, firmaAd, firma, onClose, onSend, onError, 
           </div>
         )}
 
-        {/* Gönder butonu */}
         <button
           onClick={handleSend}
           disabled={!sel || sending || kredisiYok}

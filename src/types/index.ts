@@ -52,6 +52,8 @@ export interface Firma {
   abonelik_baslangic?: string;
   son_odeme_tarihi?: string;
   sonraki_odeme_tarihi?: string;
+  oto_sms_aktif?: boolean; 
+  oto_sms_durumlar?: string[]; // Örn: ['hazir', 'teslim_edildi']
 }
 
 // Paket tanımları

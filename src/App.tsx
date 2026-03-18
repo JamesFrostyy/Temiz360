@@ -162,6 +162,7 @@ export default function App() {
     setOrders,
     ht,
     firmaId,
+    firma: firmalar.find((f) => f.id === firmaId) ?? null,
     isAdmin,
     hesapAktif,
     showToast,
