@@ -139,6 +139,7 @@ export function firmaOzellikVar(
     | 'gelismis_raporlar' // Pro+
     | 'coklu_sube'     // Enterprise
     | 'oncelikli_destek'  // Enterprise
+    | 'yol_tarifi'      // Pro+
 ): boolean {
   if (!firma) return false;
   const paket = firma.paket || 'starter';
@@ -149,6 +150,7 @@ export function firmaOzellikVar(
     case 'wa_api':
     case 'pdf_fatura':
     case 'gelismis_raporlar':
+    case 'yol_tarifi':
       return paket === 'pro' || paket === 'enterprise';
       
     // 👇 SMS özelliği hepsinde var (Starter manuel kullanacak)

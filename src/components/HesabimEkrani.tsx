@@ -341,6 +341,18 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
             📱 SMS gönderen adı: <strong>{firma.netgsm_baslik}</strong>
           </div>
         )}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed #E2E8F0" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10 }}>HIZLI SMS PAKETİ YÜKLE</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {/* Shopier linklerini kendi ürün linklerinle değiştirmeyi unutma! */}
+            <a href={`https://www.shopier.com/yikanio/1000SMS?email=${firma.email}`} target="_blank" rel="noreferrer" style={{ flex: 1, padding: "10px", textAlign: "center", background: "#F8FAFC", color: "#334155", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", border: "1px solid #CBD5E1", transition: "all 0.2s" }}>
+              +1.000 SMS <br/><span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>₺250</span>
+            </a>
+            <a href={`https://www.shopier.com/yikanio/5000SMS?email=${firma.email}`} target="_blank" rel="noreferrer" style={{ flex: 1, padding: "10px", textAlign: "center", background: "#F0FDF4", color: "#065F46", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", border: "1px solid #A7F3D0", transition: "all 0.2s" }}>
+              +5.000 SMS <br/><span style={{ fontSize: 11, color: "#059669", fontWeight: 500 }}>₺1.000 <span style={{ background: "#DC2626", color: "#fff", padding: "1px 4px", borderRadius: 4, fontSize: 9 }}>İNDİRİM</span></span>
+            </a>
+          </div>
+        </div>
       </div>
 
       <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>

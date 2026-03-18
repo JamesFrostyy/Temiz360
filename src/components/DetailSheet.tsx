@@ -135,7 +135,21 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
             {order.adres && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <span style={{ fontSize: 16 }}>📍</span>
-                <span style={{ color: "#334155", fontSize: 14 }}>{order.adres}</span>
+                <div style={{ flex: 1 }}>
+                  <span style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 6 }}>{order.adres}</span>
+                  
+                  {/* 👇 SADECE PRO VE ÜSTÜ PAKETLER GÖREBİLİR 👇 */}
+                  {firmaOzellikVar(firma, 'yol_tarifi') && (
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.adres)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#0EA5E9", background: "#F0F9FF", padding: "6px 12px", borderRadius: 8, textDecoration: "none", border: "1px solid #BAE6FD" }}
+                    >
+                      🗺️ Haritada Yol Tarifi Al
+                    </a>
+                  )}
+                </div>
               </div>
             )}
             {order.notlar && (
