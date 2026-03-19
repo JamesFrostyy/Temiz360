@@ -158,11 +158,25 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
       } else {
         if (!email.trim()) { setErr("Email zorunludur."); setSaving(false); return; }
         await dbFirmaEkle(token, ad, email, extra);
-        await fetch(`${SUPABASE_URL}/auth/v1/invite`, {
+
+        // 1. Kullanıcıyı arka planda rastgele, güçlü bir şifreyle sessizce oluştur (Signup)
+        const tempPassword = Math.random().toString(36).slice(-10) + "Yk1*";
+        await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
           method: "POST",
-          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: tempPassword }),
+        });
+
+        // 2. Kusursuz çalışan 8 Haneli Güvenlik Kodu (OTP) mailimizi fırlat (Recover)
+        const mailRes = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+          method: "POST",
+          headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
+
+        if (!mailRes.ok) {
+          throw new Error("Firma eklendi ancak mail gönderilemedi. Email adresini kontrol edin.");
+        }
       }
       formuTemizle();
       await yukle();

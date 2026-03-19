@@ -545,7 +545,7 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
     if (!email || !password) { setErr("Email ve şifre zorunludur."); return; }
     setLoading(true); setErr(""); setMsg("");
     try { await onLogin(email, password); }
-    catch (e) { setErr(e instanceof Error ? e.message : "Giriş başarısız"); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Giriş başarısız. Bilgilerinizi kontrol edin."); }
     finally { setLoading(false); }
   };
 
@@ -564,18 +564,18 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
   };
 
   const handleReset = async () => {
-    if (!otpCode || newPassword.length < 6) { setErr("Kodu ve en az 6 haneli yeni şifrenizi girin."); return; }
+    if (!email || !otpCode || newPassword.length < 6) { setErr("Tüm alanları (Email, Kod, Yeni Şifre) eksiksiz doldurun."); return; }
     setLoading(true); setErr(""); setMsg("");
     try {
       const token = await authVerifyOtp(email, otpCode);
       await authSetPassword(token, newPassword);
       setStep("login");
       setPassword(newPassword);
-      setMsg("Şifreniz başarıyla değiştirildi! Şimdi giriş yapabilirsiniz.");
+      setMsg("Şifreniz başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.");
       setOtpCode("");
       setNewPassword("");
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Sıfırlama başarısız. Kod yanlış veya süresi dolmuş olabilir.");
+      setErr(e instanceof Error ? e.message : "İşlem başarısız. Kod yanlış veya süresi dolmuş olabilir.");
     } finally {
       setLoading(false);
     }
@@ -593,7 +593,7 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
           </div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#0F172A" }}>Yıkan<span style={{ color: "#38BDF8" }}>io</span></h1>
           <p style={{ margin: "8px 0 0", color: "#64748B", fontSize: 14 }}>
-            {step === "login" ? "Halı Yıkama Yönetim Sistemi" : step === "forgot" ? "Şifre Sıfırlama Talebi" : "Güvenlik Kodunu Girin"}
+            {step === "login" ? "Halı Yıkama Yönetim Sistemi" : step === "forgot" ? "Şifre Sıfırlama Talebi" : "Hesabınızı Aktifleştirin"}
           </p>
         </div>
 
@@ -605,16 +605,19 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
           <div style={{ display: "grid", gap: 12 }}>
             <input style={inp} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email adresiniz" onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
             <input style={inp} type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Şifreniz" onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
-            <div style={{ textAlign: "right" }}>
-              <button onClick={() => { setStep("forgot"); setErr(""); setMsg(""); }} style={{ background: "none", border: "none", color: "#2563EB", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>Şifremi unuttum</button>
+            
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, alignItems: "center" }}>
+              <button onClick={() => { setStep("otp"); setErr(""); setMsg(""); setOtpCode(""); setNewPassword(""); }} style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#059669", fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "6px 12px", borderRadius: 8 }}>✨ Davet kodum var</button>
+              <button onClick={() => { setStep("forgot"); setErr(""); setMsg(""); }} style={{ background: "none", border: "none", color: "#64748B", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 }}>Şifremi unuttum</button>
             </div>
+
             <button onClick={handleLogin} disabled={loading} style={{ width: "100%", padding: 16, marginTop: 8, borderRadius: 12, border: "none", background: "linear-gradient(135deg,#2563EB,#3B82F6)", color: "#fff", fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
               {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
             </button>
           </div>
         )}
 
-        {/* 2. ADIM: ŞİFRE SIFIRLAMA TALEBİ EKRANI */}
+        {/* 2. ADIM: ŞİFRE SIFIRLAMA TALEBİ EKRANI (Mevcut kullanıcılar için) */}
         {step === "forgot" && (
           <div style={{ display: "grid", gap: 12 }}>
             <input style={inp} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Kayıtlı email adresiniz" onKeyDown={(e) => e.key === "Enter" && handleForgot()} />
@@ -627,15 +630,20 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
           </div>
         )}
 
-        {/* 3. ADIM: KODU GİRME VE YENİ ŞİFRE BELİRLEME EKRANI */}
+        {/* 3. ADIM: DAVET KODU / ŞİFRE BELİRLEME EKRANI (Yeni veya şifre sıfırlayanlar için) */}
         {step === "otp" && (
           <div style={{ display: "grid", gap: 12 }}>
-            <input style={{...inp, textAlign: "center", letterSpacing: 8, fontSize: 20, fontWeight: 800}} type="text" maxLength={8} value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="00000000" onKeyDown={(e) => e.key === "Enter" && handleReset()} />
+            <div style={{ fontSize: 13, color: "#64748B", textAlign: "center", marginBottom: 4 }}>
+              Email adresinizi, size gelen 8 haneli kodu ve kullanmak istediğiniz yeni şifreyi girin.
+            </div>
+            <input style={inp} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email adresiniz" onKeyDown={(e) => e.key === "Enter" && handleReset()} />
+            <input style={{...inp, textAlign: "center", letterSpacing: 6, fontSize: 20, fontWeight: 800}} type="text" maxLength={8} value={otpCode} onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))} placeholder="00000000" onKeyDown={(e) => e.key === "Enter" && handleReset()} />
             <input style={inp} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Yeni Şifreniz (En az 6 karakter)" onKeyDown={(e) => e.key === "Enter" && handleReset()} />
+            
             <button onClick={handleReset} disabled={loading} style={{ width: "100%", padding: 16, marginTop: 8, borderRadius: 12, border: "none", background: "linear-gradient(135deg,#059669,#10B981)", color: "#fff", fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-              {loading ? "İşleniyor..." : "Şifreyi Güncelle"}
+              {loading ? "İşleniyor..." : "Şifreyi Kaydet ve Aktifleştir"}
             </button>
-            <button onClick={() => { setStep("login"); setErr(""); setMsg(""); }} disabled={loading} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #E2E8F0", background: "#fff", color: "#64748B", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={() => { setStep("login"); setErr(""); setMsg(""); setOtpCode(""); setNewPassword(""); }} disabled={loading} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #E2E8F0", background: "#fff", color: "#64748B", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               İptal Et
             </button>
           </div>
