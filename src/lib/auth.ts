@@ -70,3 +70,29 @@ export async function authRefresh(
     expiresIn: data.expires_in,
   };
 }
+// Şifre sıfırlama kodu (OTP) talep et
+export async function authRequestPasswordReset(email: string): Promise<void> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.msg || data.error_description || "Şifre sıfırlama maili gönderilemedi.");
+  }
+}
+
+// OTP kodunu doğrula ve geçici oturum (token) al
+export async function authVerifyOtp(email: string, token: string): Promise<string> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "recovery", email, token }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.msg || data.error_description || "Kod geçersiz veya süresi dolmuş.");
+  }
+  return data.access_token; // Bu token ile yeni şifre belirlenecek
+}
