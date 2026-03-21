@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Firma, PAKETLER, PaketTip } from "../types";
 import { sbFetch } from "../lib/supabase";
 import { STATUS_CONFIG } from "../constants";
+import { ADRES_DATA } from "../data/adres"; // 📍 YENİ EKLENDİ
 
 interface HesabimEkraniProps {
   firma: Firma | null | undefined;
@@ -35,19 +36,24 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   // Arayüz state'leri
   const [otoSmsAktif, setOtoSmsAktif] = useState(false);
   const [otoSmsDurumlar, setOtoSmsDurumlar] = useState<string[]>([]);
+  
+  // 📍 YENİ STATE'LER: Hizmet Bölgesi
+  const [hizmetIli, setHizmetIli] = useState<string>("");
+  const [hizmetIlceleri, setHizmetIlceleri] = useState<string[]>([]);
 
-  // 1. ÇÖZÜM: Ana sistem bu kolonları çekmiyorsa, sayfa yüklendiğinde biz doğrudan çekeriz!
   useEffect(() => {
     if (!firma?.id) return;
 
     const ayarlariGetir = async () => {
       try {
-        // DÜZELTME BURADA: sbFetch zaten veriyi döndürüyor, res.json() yapmaya gerek yok ve TypeScript'e bunun bir dizi olduğunu (as any[]) söylüyoruz.
-        const data = (await sbFetch(`firmalar?id=eq.${firma.id}&select=oto_sms_aktif,oto_sms_durumlar`, {}, token)) as any[];
+        // 📍 DÜZELTME: Sorguya hizmet_ili ve hizmet_ilceleri'ni de ekledik
+        const data = (await sbFetch(`firmalar?id=eq.${firma.id}&select=oto_sms_aktif,oto_sms_durumlar,hizmet_ili,hizmet_ilceleri`, {}, token)) as any[];
         
         if (data && data.length > 0) {
           const f = data[0];
           setOtoSmsAktif(f.oto_sms_aktif || false);
+          setHizmetIli(f.hizmet_ili || ""); // 📍 YENİ
+          setHizmetIlceleri(f.hizmet_ilceleri || []); // 📍 YENİ
           
           let arr: string[] = [];
           if (Array.isArray(f.oto_sms_durumlar)) {
@@ -65,6 +71,28 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
 
     ayarlariGetir();
   }, [firma?.id, token]);
+
+  // 📍 YENİ: İLÇE SEÇME FONKSİYONU
+  const handleIlceToggle = async (ilce: string) => {
+    const yeniIlceler = hizmetIlceleri.includes(ilce)
+      ? hizmetIlceleri.filter(i => i !== ilce)
+      : [...hizmetIlceleri, ilce];
+
+    // Arayüzü anında güncelle (Optimistic UI)
+    setHizmetIlceleri(yeniIlceler);
+
+    // Veritabanına kaydet
+    try {
+      await sbFetch(
+        `firmalar?id=eq.${firma?.id}`, 
+        { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ hizmet_ilceleri: yeniIlceler }) }, 
+        token
+      );
+    } catch (err) {
+      setHizmetIlceleri(hizmetIlceleri); // Hata olursa geri al
+      alert("Bölge ayarı kaydedilemedi.");
+    }
+  };
 
   if (!firma) {
     return (
@@ -144,6 +172,66 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
           </div>
         </div>
       </div>
+
+      {/* ─── YENİ: HİZMET BÖLGELERİ ─── */}
+      <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", marginBottom: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#0F172A" }}>📍 Hizmet Bölgeleri</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Sipariş alacağınız ilçeleri buradan yönetin. Sipariş formunda sadece bu ilçeler çıkar.</div>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 16 }}>
+          {/* İl Kilidi Bilgisi */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", marginBottom: 6 }}>Kayıtlı Faaliyet İli</div>
+            {hizmetIli ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F1F5F9", padding: "8px 14px", borderRadius: 10, border: "1px solid #E2E8F0", color: "#334155", fontWeight: 700, fontSize: 14 }}>
+                🏢 {hizmetIli}
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: "#DC2626", fontWeight: 600, background: "#FEF2F2", padding: "10px", borderRadius: 8, border: "1px dashed #FECACA" }}>
+                Henüz il atamanız yapılmamıştır. Lütfen yönetici ile iletişime geçiniz.
+              </div>
+            )}
+            {hizmetIli && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 6 }}>* İl değişikliği (Farklı bir şehre taşınma) için müşteri hizmetleri ile görüşmeniz gerekmektedir.</div>}
+          </div>
+
+          {/* İlçeler Çoklu Seçim Listesi */}
+          {hizmetIli && ADRES_DATA[hizmetIli] && (
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", marginBottom: 10 }}>Hizmet Verilen İlçeler ({hizmetIlceleri.length} Seçili)</div>
+              
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {Object.keys(ADRES_DATA[hizmetIli]).map(ilce => {
+                  const secili = hizmetIlceleri.includes(ilce);
+                  return (
+                    <button
+                      key={ilce}
+                      onClick={() => handleIlceToggle(ilce)}
+                      style={{
+                        padding: "8px 14px", borderRadius: 20, 
+                        border: `1.5px solid ${secili ? "#3B82F6" : "#E2E8F0"}`,
+                        background: secili ? "#EFF6FF" : "#fff", 
+                        color: secili ? "#1D4ED8" : "#475569",
+                        fontWeight: secili ? 700 : 500, fontSize: 13, 
+                        cursor: "pointer", transition: "all 0.2s", fontFamily: "inherit",
+                        display: "flex", alignItems: "center", gap: 4
+                      }}
+                    >
+                      {secili && <span style={{ color: "#2563EB", fontWeight: 900 }}>✓</span>}
+                      {ilce}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 10 }}>* Yukarıdan seçtiğiniz ilçeler arka planda otomatik olarak kaydedilir.</div>
+            </div>
+          )}
+        </div>
+      </div>
+      {/* ─────────────────────────────── */}
 
       {firma.hesap_durum === "demo" && (
         <div style={{ background: "#F5F3FF", border: "1.5px solid #DDD6FE", borderRadius: 16, padding: 20, marginBottom: 16 }}>
@@ -237,7 +325,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
               <div style={{ fontSize: 12, color: "#059669", marginTop: 2 }}>Sipariş durumu değiştiğinde müşteriye kendiliğinden SMS gider.</div>
             </div>
             
-            {/* Şalter */}
             <label style={{ position: "relative", display: "inline-block", width: 44, height: 24, flexShrink: 0 }}>
               <input 
                 type="checkbox" 
@@ -245,11 +332,7 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
                 checked={otoSmsAktif}
                 onChange={async (e) => {
                   const yeniDurum = e.target.checked;
-                  
-                  // Arayüzü anında güncelle
                   setOtoSmsAktif(yeniDurum);
-                  
-                  // Veritabanını güncelle
                   try {
                     await sbFetch(
                       `firmalar?id=eq.${firma.id}`, 
@@ -257,7 +340,7 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
                       token
                     );
                   } catch (err) {
-                    setOtoSmsAktif(!yeniDurum); // Hata olursa arayüzü geri al
+                    setOtoSmsAktif(!yeniDurum); 
                     alert("Ayar kaydedilemedi.");
                   }
                 }}
@@ -283,14 +366,11 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
                         checked={secili}
                         onChange={async (e) => {
                           const isChecked = e.target.checked;
-                          
-                          // Arayüzü anında güncelle
                           const yeniDurumlar = isChecked 
                             ? [...otoSmsDurumlar, statusKey] 
                             : otoSmsDurumlar.filter(x => x !== statusKey);
                           setOtoSmsDurumlar(yeniDurumlar);
 
-                          // Veritabanını güncelle
                           try {
                             await sbFetch(
                               `firmalar?id=eq.${firma.id}`, 
@@ -298,7 +378,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
                               token
                             );
                           } catch (err) {
-                            // Hata olursa geri al
                             setOtoSmsDurumlar(otoSmsDurumlar);
                             alert("Durum ayarı kaydedilemedi.");
                           }
@@ -344,7 +423,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed #E2E8F0" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10 }}>HIZLI SMS PAKETİ YÜKLE</div>
           <div style={{ display: "flex", gap: 10 }}>
-            {/* Shopier linklerini kendi ürün linklerinle değiştirmeyi unutma! */}
             <a href={`https://www.shopier.com/yikanio/1000SMS?email=${firma.email}`} target="_blank" rel="noreferrer" style={{ flex: 1, padding: "10px", textAlign: "center", background: "#F8FAFC", color: "#334155", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", border: "1px solid #CBD5E1", transition: "all 0.2s" }}>
               +1.000 SMS <br/><span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>₺250</span>
             </a>
@@ -389,6 +467,7 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   );
 }
 
+// ... OdemeModal kodu aynen devam ediyor (değişiklik yok)
 interface OdemeModalProps {
   firma: Firma;
   token: string;
@@ -430,12 +509,9 @@ function OdemeModal({
     try {
       const link = SHOPIER_LINKLER[secilenPaket][isYearly ? "yillik" : "aylik"];
       const url = `${link}?email=${encodeURIComponent(firma.email)}&name=${encodeURIComponent(firma.yetkili_ad || firma.ad)}`;
-      
       window.open(url, "_blank");
-
       setYukleniyor(false);
       alert(`Shopier ödeme sayfası açıldı.\n\nÖdemeniz onaylandıktan sonra hesabınız sistem tarafından otomatik olarak aktif edilecektir.\n\nBilgi: info@yikanio.com`);
-      
       onBasarili();
     } catch (e) {
       setYukleniyor(false);
@@ -446,9 +522,7 @@ function OdemeModal({
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.7)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 3000, fontFamily: "'Poppins', sans-serif" }} onClick={onClose}>
       <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "24px 24px 40px", width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
-
         <div style={{ width: 40, height: 4, background: "#E2E8F0", borderRadius: 4, margin: "0 auto 20px" }} />
-
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#0F172A" }}>💳 Abonelik Satın Al</h2>
@@ -456,22 +530,14 @@ function OdemeModal({
           </div>
           <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
-
         <div style={{ display: "flex", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 4, marginBottom: 20 }}>
-          <button
-            onClick={() => setIsYearly(false)}
-            style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: !isYearly ? "#fff" : "transparent", color: !isYearly ? "#0F172A" : "#64748B", fontWeight: !isYearly ? 700 : 500, boxShadow: !isYearly ? "0 2px 8px rgba(0,0,0,0.05)" : "none", cursor: "pointer", transition: "all 0.2s" }}
-          >
+          <button onClick={() => setIsYearly(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: !isYearly ? "#fff" : "transparent", color: !isYearly ? "#0F172A" : "#64748B", fontWeight: !isYearly ? 700 : 500, boxShadow: !isYearly ? "0 2px 8px rgba(0,0,0,0.05)" : "none", cursor: "pointer", transition: "all 0.2s" }}>
             Aylık Ödeme
           </button>
-          <button
-            onClick={() => setIsYearly(true)}
-            style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: isYearly ? "#fff" : "transparent", color: isYearly ? "#0F172A" : "#64748B", fontWeight: isYearly ? 700 : 500, boxShadow: isYearly ? "0 2px 8px rgba(0,0,0,0.05)" : "none", cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
-          >
+          <button onClick={() => setIsYearly(true)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: isYearly ? "#fff" : "transparent", color: isYearly ? "#0F172A" : "#64748B", fontWeight: isYearly ? 700 : 500, boxShadow: isYearly ? "0 2px 8px rgba(0,0,0,0.05)" : "none", cursor: "pointer", transition: "all 0.2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
             Yıllık Ödeme <span style={{ background: "#FEF3C7", color: "#D97706", fontSize: 10, padding: "2px 6px", borderRadius: 10, fontWeight: 800 }}>%20 İNDİRİM</span>
           </button>
         </div>
-
         <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10, textTransform: "uppercase" }}>
           {mevcutDurum === "demo" ? "Başlamak istediğiniz paketi seçin" : "Yükseltmek istediğiniz paketi seçin"}
         </div>
@@ -481,23 +547,9 @@ function OdemeModal({
             const seciliMi = key === secilenPaket;
             const mevcutMu = key === mevcutPaket && mevcutDurum !== "demo";
             const kilitli = mevcutDurum !== "demo" && paketSirasi.indexOf(key) < mevcutIndex;
-            
             const paketAylikFiyat = isYearly ? Math.round(p.fiyat * 0.8) : p.fiyat;
-
             return (
-              <button
-                key={key}
-                onClick={() => !mevcutMu && !kilitli && setSecilenPaket(key)}
-                style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "14px 16px", borderRadius: 14, textAlign: "left",
-                  border: `2px solid ${seciliMi ? p.renk : "#E2E8F0"}`,
-                  background: seciliMi ? p.bg : (mevcutMu || kilitli) ? "#F8FAFC" : "#fff",
-                  cursor: (mevcutMu || kilitli) ? "not-allowed" : "pointer",
-                  opacity: kilitli ? 0.4 : 1,
-                  fontFamily: "inherit", transition: "all 0.2s",
-                }}
-              >
+              <button key={key} onClick={() => !mevcutMu && !kilitli && setSecilenPaket(key)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderRadius: 14, textAlign: "left", border: `2px solid ${seciliMi ? p.renk : "#E2E8F0"}`, background: seciliMi ? p.bg : (mevcutMu || kilitli) ? "#F8FAFC" : "#fff", cursor: (mevcutMu || kilitli) ? "not-allowed" : "pointer", opacity: kilitli ? 0.4 : 1, fontFamily: "inherit", transition: "all 0.2s" }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15, color: seciliMi ? p.renk : kilitli ? "#94A3B8" : "#334155", display: "flex", alignItems: "center", gap: 8 }}>
                     {p.ad}
@@ -516,7 +568,6 @@ function OdemeModal({
             );
           })}
         </div>
-
         <div style={{ background: "linear-gradient(135deg,#0F172A,#1E293B)", borderRadius: 16, padding: 20, marginBottom: 20, color: "#fff" }}>
           <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Sipariş Özeti</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -530,25 +581,12 @@ function OdemeModal({
             {firma.ad} · {firma.email}
           </div>
         </div>
-
         <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
           {["🔒 SSL şifreleme", "💳 Tüm kartlar", "🚫 Taahhüt yok"].map((item) => (
             <div key={item} style={{ fontSize: 12, color: "#64748B" }}>{item}</div>
           ))}
         </div>
-
-        <button
-          onClick={shopierOdemeBaslat}
-          disabled={yukleniyor || secilenPaket === mevcutPaket && mevcutDurum !== "demo"}
-          style={{
-            width: "100%", padding: "18px", borderRadius: 14, border: "none",
-            background: yukleniyor ? "#E2E8F0" : "linear-gradient(135deg,#2563EB,#3B82F6)",
-            color: yukleniyor ? "#94A3B8" : "#fff",
-            cursor: yukleniyor ? "not-allowed" : "pointer",
-            fontWeight: 800, fontSize: 16, fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-          }}
-        >
+        <button onClick={shopierOdemeBaslat} disabled={yukleniyor || secilenPaket === mevcutPaket && mevcutDurum !== "demo"} style={{ width: "100%", padding: "18px", borderRadius: 14, border: "none", background: yukleniyor ? "#E2E8F0" : "linear-gradient(135deg,#2563EB,#3B82F6)", color: yukleniyor ? "#94A3B8" : "#fff", cursor: yukleniyor ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 16, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
           {yukleniyor ? "Yönlendiriliyor..." : (
             <><span style={{ fontSize: 20 }}>💳</span> Güvenli Öde — ₺{odenecekToplamTutar.toLocaleString()}</>
           )}

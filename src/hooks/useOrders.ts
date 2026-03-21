@@ -65,6 +65,9 @@ export function useOrders(token: string, isAdmin: boolean, userEmail?: string) {
           abonelik_baslangic: f.abonelik_baslangic as string | undefined,
           son_odeme_tarihi: f.son_odeme_tarihi as string | undefined,
           sonraki_odeme_tarihi: f.sonraki_odeme_tarihi as string | undefined,
+          oto_sms_aktif: f.oto_sms_aktif as boolean | undefined,
+          oto_sms_durumlar: f.oto_sms_durumlar as string[] | undefined,
+          wa_kredisi: f.wa_kredisi as number | undefined,
         }]);
       }
 

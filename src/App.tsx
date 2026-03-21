@@ -464,6 +464,7 @@ export default function App() {
           order={editing}
           ht={ht}
           firmalar={firmalar}
+          firma={firmalar.find(f => f.id === firmaId)}
           isAdmin={isAdmin}
           token={user!.token}
           firmaId={firmaId}

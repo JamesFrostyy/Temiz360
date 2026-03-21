@@ -1,7 +1,7 @@
 import { Siparis, HaliTuru, Firma, ToastState } from "../types";
 import { dbKaydet, dbSil } from "../lib/db";
 import { sbFetch } from "../lib/supabase";
-import { OrderForm } from "../components/OrderModal"; // type'ı export etmeniz gerekebilir
+import { OrderForm } from "../components/OrderModal"; 
 
 interface UseOrderActionsParams {
   user: { token: string } | null;
@@ -9,7 +9,7 @@ interface UseOrderActionsParams {
   setOrders: React.Dispatch<React.SetStateAction<Siparis[]>>;
   ht: HaliTuru[];
   firmaId: string;
-  firma?: Firma | null; //
+  firma?: Firma | null;
   isAdmin: boolean;
   hesapAktif: boolean;
   showToast: (msg: string, type?: string) => void;
@@ -30,9 +30,9 @@ export function useOrderActions({
   const handleSave = async (form: OrderForm, editingId: string | null) => {
     if (!user) return;
     if (!isAdmin && !hesapAktif) {
-    showToast("Hesabınız aktif değil. Yöneticinizle iletişime geçin.", "error");
-    return;
-  }
+      showToast("Hesabınız aktif değil.", "error");
+      return;
+    }
     const resolvedFirmaId = isAdmin ? form.firmaId : firmaId;
     await dbKaydet(form, editingId, ht, user.token, resolvedFirmaId);
     showToast(editingId ? "Sipariş güncellendi!" : "Sipariş oluşturuldu!");
@@ -40,12 +40,8 @@ export function useOrderActions({
 
   const handleStatus = async (id: string, durum: string) => {
     if (!user) return;
-    if (!isAdmin && !hesapAktif) {
-      showToast("Hesabınız aktif değil.", "error");
-      return;
-    }
 
-    // 1. Sipariş Durumunu Veritabanında Güncelle
+    // 1. Durumu Veritabanında Güncelle
     await sbFetch(
       `siparisler?id=eq.${id}`,
       { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ durum }) },
@@ -54,23 +50,14 @@ export function useOrderActions({
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, durum } : o));
     showToast("Durum güncellendi!");
 
-    // 2. OTOMATİK SMS TETİKLEYİCİ (SİHİRLİ KISIM) 🚀
-    // Sadece Pro ve Enterprise paketler için çalışır
-    const isProOrEnt = firma?.paket === 'pro' || firma?.paket === 'enterprise';
-    
-    // Eğer otomasyon açıksa VE bu durum için ayarlanmışsa
-    if (isProOrEnt && firma?.oto_sms_aktif && firma?.oto_sms_durumlar?.includes(durum)) {
-      const ilgiliSiparis = orders.find((o) => o.id === id);
+    // 2. OTOMATİK SMS KONTROLÜ
+    const ilgiliSiparis = orders.find((o) => o.id === id);
+
+    if (firma?.oto_sms_aktif && firma?.oto_sms_durumlar?.includes(durum) && ilgiliSiparis) {
+      const baslik = firma?.netgsm_baslik || firma?.ad || "Hali Yikama";
+      const otoMesaj = `Sayin ${ilgiliSiparis.musteri},\nSiparisiniz "${durum}" asamasina gecmistir.\nBizi tercih ettiginiz icin tesekkurler.\n${baslik}`;
       
-      // Aynı duruma daha önce SMS atılmamışsa gönder (Spam engelleme)
-      if (ilgiliSiparis && !ilgiliSiparis.smsDurum?.[durum]) {
-        // Otomatik mesaj şablonu
-        const otoMesaj = `Sayın ${ilgiliSiparis.musteri}, siparişiniz "${durum}" aşamasına geçmiştir. Bizi tercih ettiğiniz için teşekkürler.`;
-        
-        // Arkada sessizce SMS at!
-        await handleSms(ilgiliSiparis, durum, otoMesaj, "sms");
-        // Not: handleSms içinde kendi showToast("Bildirim gönderildi") mesajı olduğu için ayrıca uyarıya gerek yok.
-      }
+      await handleSms(ilgiliSiparis, durum, otoMesaj, "sms", true);
     }
   };
 
@@ -78,9 +65,80 @@ export function useOrderActions({
     smsOrder: Siparis | null,
     durum: string,
     mesaj: string,
-    kanal: "wa_me" | "wa_api" | "sms"
+    kanal: "wa_me" | "wa_api" | "sms",
+    otomatikMi: boolean = false
   ) => {
     if (!user || !smsOrder) return;
+    
+    // --- 🟢 WHATSAPP KREDİSİ DÜŞÜRME EKLENDİ ---
+    if (kanal === "wa_me") {
+      const isStarter = !firma?.paket || firma?.paket === "starter";
+      const guncelWaKredi = firma?.wa_kredisi || 0;
+      
+      // Sadece Starter paketinde kredi düşür (Pro'da sınırsızdır)
+      if (isStarter && guncelWaKredi > 0) {
+        await sbFetch(
+          `firmalar?id=eq.${firmaId}`,
+          { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ wa_kredisi: guncelWaKredi - 1 }) },
+          user.token
+        );
+      }
+    }
+    // ------------------------------------------
+
+    if (kanal === "sms" && otomatikMi) {
+      
+      // KREDİ KONTROLÜ
+      const guncelKredi = firma?.sms_kredisi || 0;
+      if (guncelKredi <= 0) {
+        showToast("Kredi yetersiz, otomatik SMS atılamadı.", "error");
+        return; 
+      }
+
+      // FİRMA NETGSM BİLGİSİ KONTROLÜ
+      const netgsmUser = firma?.netgsm_user;
+      const netgsmPass = firma?.netgsm_pass;
+      const smsBaslik = firma?.netgsm_baslik || firma?.ad?.slice(0, 11) || "Hali Yikama";
+
+      if (!netgsmUser || !netgsmPass) {
+        showToast("NetGSM ayarlarınız eksik, otomatik mesaj gönderilemedi.", "error");
+        return;
+      }
+      
+      let tel = smsOrder.telefon.replace(/[^0-9]/g, "");
+      if (tel.startsWith("0")) tel = "9" + tel;
+      else if (tel.startsWith("5")) tel = "90" + tel;
+
+      // NETGSM PARAMETRELERİ
+      const params = new URLSearchParams({
+        usercode: netgsmUser,
+        password: netgsmPass,
+        gsmno: tel,
+        message: mesaj,
+        msgheader: smsBaslik,
+        dil: "TR",
+      });
+
+      // =========================================================================
+      // 🧪 SADECE TEST/SİMÜLASYON MODU (Gerçek fetch isteği tamamen silindi)
+      // =========================================================================
+      console.log("🟠 [OTOMATİK] NETGSM'E GİDECEK OLAN URL:", `https://api.netgsm.com.tr/sms/send/get/?${params.toString()}`);
+      console.log("🟠 [OTOMATİK] TEST: İstek başarılı varsayıldı, kredi düşürülüyor...");
+      
+      showToast("Test: Otomatik SMS başarıyla simüle edildi!", "success");
+      
+      // Krediyi Düşür (Simülasyonun başarılı olduğunu kanıtlamak için)
+      await sbFetch(
+        `firmalar?id=eq.${firmaId}`,
+        { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ sms_kredisi: guncelKredi - 1 }) },
+        user.token
+      );
+      
+    } else if (kanal === "sms" && !otomatikMi) {
+      showToast("SMS başarıyla simüle edildi!", "success");
+    }
+
+    // LOGLAMA VE ARAYÜZ GÜNCELLEME
     const yeniSmsDurum = { ...smsOrder.smsDurum, [durum]: true };
     await sbFetch(
       `siparisler?id=eq.${smsOrder.id}`,
@@ -95,7 +153,6 @@ export function useOrderActions({
     setOrders((prev) =>
       prev.map((o) => o.id === smsOrder.id ? { ...o, smsDurum: yeniSmsDurum } : o)
     );
-    showToast("Bildirim gönderildi!");
   };
 
   const handleSil = async (id: string) => {

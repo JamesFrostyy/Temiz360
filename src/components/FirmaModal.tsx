@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Firma, PaketTip, AddonTip, PAKETLER, ADDONLAR } from "../types";
 import { dbFirmalariGetir, dbFirmaEkle, dbFirmaGuncelle, dbFirmaSil } from "../lib/db";
 import { SUPABASE_URL, SUPABASE_KEY } from "../constants";
+import { ILLER } from "../data/adres"; // 📍 YENİ EKLENDİ
 
 interface FirmaModalProps {
   token: string;
@@ -25,19 +26,16 @@ const HESAP_DURUM_CFG: Record<string, { label: string; color: string; bg: string
   iptal:   { label: "İptal",   color: "#6B7280", bg: "#F3F4F6", border: "#E5E7EB", icon: "❌" },
 };
 
-// Tarihe kaç gün kaldığını hesapla (negatif = geçti)
 function gunFarki(tarih?: string): number {
   if (!tarih) return 0;
   return Math.ceil((new Date(tarih).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
-// ISO tarihi input[type=date] formatına çevir
 function toDateInput(iso?: string): string {
   if (!iso) return "";
   return iso.split("T")[0];
 }
 
-// input[type=date] değerini ISO'ya çevir
 function toISO(dateStr: string): string {
   if (!dateStr) return "";
   return new Date(dateStr).toISOString();
@@ -56,6 +54,7 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
   const [telefon, setTelefon] = useState("");
   const [aktif, setAktif] = useState(true);
   const [hesapDurum, setHesapDurum] = useState<string>("demo");
+  const [hizmetIli, setHizmetIli] = useState(""); // 📍 YENİ EKLENDİ
 
   // Paket
   const [paket, setPaket] = useState<PaketTip>("starter");
@@ -92,7 +91,8 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
 
   const formuTemizle = () => {
     setAd(""); setEmail(""); setYetkiliAd(""); setTelefon(""); setAktif(true);
-    setHesapDurum("demo"); setPaket("starter"); setAddonlar([]);
+    setHesapDurum("demo"); setHizmetIli(""); // 📍 YENİ EKLENDİ
+    setPaket("starter"); setAddonlar([]);
     setSmsKredisi(50); setDemoBitis(""); setAbonelikBaslangic("");
     setSonOdemeTarihi(""); setSonrakiOdemeTarihi("");
     setNetgsmUser(""); setNetgsmPass(""); setNetgsmBaslik("");
@@ -105,6 +105,7 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
     setAd(f.ad); setEmail(f.email); setYetkiliAd(f.yetkili_ad || "");
     setTelefon(f.telefon || ""); setAktif(f.aktif);
     setHesapDurum(f.hesap_durum || "demo");
+    setHizmetIli(f.hizmet_ili || ""); // 📍 YENİ EKLENDİ
     setPaket(f.paket || "starter"); setAddonlar(f.addonlar || []);
     setSmsKredisi(f.sms_kredisi ?? 50);
     setDemoBitis(toDateInput(f.demo_bitis));
@@ -117,14 +118,14 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
     setIsEditing(true); setEditId(f.id); setErr("");
     setAktifTab("temel");
   };
-  // Hesap durumu değişince aktifliği otomatik ayarla
-    useEffect(() => {
+
+  useEffect(() => {
     if (hesapDurum === "aktif" || hesapDurum === "demo" || hesapDurum === "gecikme") {
-    setAktif(true);
+      setAktif(true);
     } else if (hesapDurum === "pasif" || hesapDurum === "iptal") {
-    setAktif(false);
+      setAktif(false);
     }
-    }, [hesapDurum]);
+  }, [hesapDurum]);
 
   const toggleAddon = (addon: AddonTip) => {
     setAddonlar((prev) => prev.includes(addon) ? prev.filter((a) => a !== addon) : [...prev, addon]);
@@ -141,6 +142,7 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
         yetkili_ad: yetkiliAd || undefined,
         telefon: telefon || undefined,
         hesap_durum: hesapDurum,
+        hizmet_ili: hizmetIli || undefined, // 📍 YENİ EKLENDİ
         sms_kredisi: String(smsKredisi),
         demo_bitis: demoBitis ? toISO(demoBitis) : undefined,
         abonelik_baslangic: abonelikBaslangic ? toISO(abonelikBaslangic) : undefined,
@@ -159,7 +161,6 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
         if (!email.trim()) { setErr("Email zorunludur."); setSaving(false); return; }
         await dbFirmaEkle(token, ad, email, extra);
 
-        // 1. Kullanıcıyı arka planda rastgele, güçlü bir şifreyle sessizce oluştur (Signup)
         const tempPassword = Math.random().toString(36).slice(-10) + "Yk1*";
         await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
           method: "POST",
@@ -167,7 +168,6 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
           body: JSON.stringify({ email, password: tempPassword }),
         });
 
-        // 2. Kusursuz çalışan 8 Haneli Güvenlik Kodu (OTP) mailimizi fırlat (Recover)
         const mailRes = await fetch(`${SUPABASE_URL}/auth/v1/recover`, {
           method: "POST",
           headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
@@ -212,13 +212,11 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, fontFamily: "'Poppins', sans-serif", padding: 16 }} onClick={onClose}>
       <div style={{ background: "#fff", borderRadius: 20, padding: 24, width: "100%", maxWidth: 580, maxHeight: "92vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
 
-        {/* Başlık */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>🏢 Firma Yönetimi</h2>
           <button onClick={onClose} style={{ background: "#F3F4F6", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer" }}>✕</button>
         </div>
 
-        {/* Form */}
         <div style={{ background: isEditing ? "#EFF6FF" : "#F8FAFC", borderRadius: 14, padding: 16, border: `1.5px dashed ${isEditing ? "#93C5FD" : "#CBD5E1"}`, marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: isEditing ? "#1D4ED8" : "#6B7280", textTransform: "uppercase" }}>
@@ -227,7 +225,6 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
             {isEditing && <button onClick={formuTemizle} style={{ background: "transparent", border: "none", color: "#64748B", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>İptal Et</button>}
           </div>
 
-          {/* Tab Navigasyon */}
           <div style={{ display: "flex", gap: 3, background: "#E2E8F0", borderRadius: 10, padding: 3, marginBottom: 16 }}>
             {tabBtn("temel", "Temel")}
             {tabBtn("paket", "Paket")}
@@ -258,6 +255,17 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
                   <input style={inp} type="tel" value={telefon} onChange={(e) => setTelefon(e.target.value)} placeholder="05XX XXX XX XX" />
                 </div>
               </div>
+
+              {/* 📍 YENİ: HİZMET İLİ SEÇİMİ (SADECE ADMİN) */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#1D4ED8", marginBottom: 5, textTransform: "uppercase" }}>📍 Faaliyet İli (Admin Kilidi)</div>
+                <select style={{ ...inp, border: "1.5px solid #BFDBFE", background: "#EFF6FF" }} value={hizmetIli} onChange={(e) => setHizmetIli(e.target.value)}>
+                  <option value="">İl Seçiniz (Belirtilmezse tüm iller açık kalır)</option>
+                  {ILLER.map(il => <option key={il} value={il}>{il}</option>)}
+                </select>
+                <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>* Buradan seçtiğiniz il, firmanın sipariş formunda kilitli kalacaktır.</div>
+              </div>
+
               {isEditing && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <div>
@@ -339,8 +347,6 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
           {/* ── TAB: TARİHLER ────────────────────────────────────── */}
           {aktifTab === "tarihler" && (
             <div style={{ display: "grid", gap: 14 }}>
-
-              {/* Demo */}
               <div style={{ background: "#F5F3FF", borderRadius: 12, padding: 14, border: "1px solid #DDD6FE" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#7C3AED", marginBottom: 10, textTransform: "uppercase" }}>🧪 Demo Süresi</div>
                 <div>
@@ -356,7 +362,6 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
                 </div>
               </div>
 
-              {/* Abonelik */}
               <div style={{ background: "#F0FDF4", borderRadius: 12, padding: 14, border: "1px solid #BBF7D0" }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#059669", marginBottom: 10, textTransform: "uppercase" }}>💳 Abonelik & Ödeme</div>
                 <div style={{ display: "grid", gap: 10 }}>
@@ -374,34 +379,8 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
                       <input style={inp} type="date" value={sonrakiOdemeTarihi} onChange={(e) => setSonrakiOdemeTarihi(e.target.value)} />
                     </div>
                   </div>
-                  {sonrakiOdemeTarihi && (
-                    <div style={{ fontSize: 12, color: gunFarki(toISO(sonrakiOdemeTarihi)) <= 3 ? "#DC2626" : gunFarki(toISO(sonrakiOdemeTarihi)) <= 7 ? "#D97706" : "#059669", fontWeight: 600 }}>
-                      {gunFarki(toISO(sonrakiOdemeTarihi)) < 0
-                        ? `🔴 Ödeme ${Math.abs(gunFarki(toISO(sonrakiOdemeTarihi)))} gün gecikmiş!`
-                        : gunFarki(toISO(sonrakiOdemeTarihi)) === 0
-                        ? "🔴 Bugün son ödeme günü!"
-                        : `💰 ${gunFarki(toISO(sonrakiOdemeTarihi))} gün sonra ödeme`}
-                    </div>
-                  )}
                 </div>
               </div>
-
-              {/* Hızlı Aksiyon: Demo → Aktif */}
-              {isEditing && hesapDurum === "demo" && (
-                <button
-                  onClick={() => {
-                    setHesapDurum("aktif");
-                    const bugun = new Date().toISOString().split("T")[0];
-                    const birAySonra = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-                    setAbonelikBaslangic(bugun);
-                    setSonrakiOdemeTarihi(birAySonra);
-                    setAktifTab("temel");
-                  }}
-                  style={{ padding: "12px", borderRadius: 10, border: "none", background: "linear-gradient(135deg,#059669,#10B981)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "inherit" }}
-                >
-                  🚀 Demo → Aktif Aboneliğe Geçir
-                </button>
-              )}
             </div>
           )}
 
@@ -414,7 +393,6 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
                 </div>
               )}
 
-              {/* SMS Başlığı — tüm paketler */}
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", marginBottom: 6, textTransform: "uppercase" }}>🏷️ SMS Başlığı (Gönderen Adı)</div>
                 <input style={inp} value={netgsmBaslik} onChange={(e) => setNetgsmBaslik(e.target.value.slice(0, 11))} placeholder="Max 11 karakter (örn: YILDIZHAL)" maxLength={11} />
@@ -424,12 +402,10 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
                 </div>
               </div>
 
-              {/* Netgsm */}
               <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>📱 Netgsm (Merkezi Hesap)</div>
               <input style={{ ...inp, opacity: paket === "starter" ? 0.5 : 1 }} disabled={paket === "starter"} value={netgsmUser} onChange={(e) => setNetgsmUser(e.target.value)} placeholder="Netgsm kullanıcı adı" />
               <input style={{ ...inp, opacity: paket === "starter" ? 0.5 : 1 }} disabled={paket === "starter"} type="password" value={netgsmPass} onChange={(e) => setNetgsmPass(e.target.value)} placeholder="Netgsm şifre" />
 
-              {/* WhatsApp */}
               <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", marginTop: 4 }}>💬 WhatsApp Business API</div>
               <input style={{ ...inp, opacity: paket === "starter" ? 0.5 : 1 }} disabled={paket === "starter"} value={waApiKey} onChange={(e) => setWaApiKey(e.target.value)} placeholder="Meta API Key" />
               <input style={{ ...inp, opacity: paket === "starter" ? 0.5 : 1 }} disabled={paket === "starter"} value={waPhoneId} onChange={(e) => setWaPhoneId(e.target.value)} placeholder="WhatsApp Phone ID" />
@@ -453,49 +429,21 @@ export function FirmaModal({ token, onClose, onSaved }: FirmaModalProps) {
             {firmalar.map((f) => {
               const p = PAKETLER[f.paket || "starter"];
               const durum = HESAP_DURUM_CFG[f.hesap_durum || "demo"];
-              const demKalan = gunFarki(f.demo_bitis);
-              const odemeKalan = gunFarki(f.sonraki_odeme_tarihi);
 
               return (
                 <div key={f.id} style={{ background: "#F8FAFC", borderRadius: 12, border: "1px solid #E5E7EB", overflow: "hidden" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "12px 14px" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-
-                      {/* Ad + Paket + Durum */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
                         <span style={{ fontWeight: 700, fontSize: 14, color: "#0F172A" }}>🏢 {f.ad}</span>
                         <span style={{ fontSize: 10, background: p.bg, color: p.renk, padding: "2px 7px", borderRadius: 20, fontWeight: 700, border: `1px solid ${p.renk}20` }}>{p.ad}</span>
                         <span style={{ fontSize: 10, background: durum.bg, color: durum.color, padding: "2px 7px", borderRadius: 20, fontWeight: 700, border: `1px solid ${durum.border}` }}>{durum.icon} {durum.label}</span>
-                        {!f.aktif && <span style={{ fontSize: 10, background: "#FEE2E2", color: "#DC2626", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>Dondurulmuş</span>}
+                        {/* 📍 YENİ EKLENDİ: Listede ili göster */}
+                        {f.hizmet_ili && <span style={{ fontSize: 10, background: "#EFF6FF", color: "#1D4ED8", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>📍 {f.hizmet_ili}</span>}
                       </div>
 
-                      {/* Email + Yetkili */}
                       <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 6 }}>
                         {f.email}
-                        {f.yetkili_ad && <span style={{ marginLeft: 8, color: "#94A3B8" }}>· {f.yetkili_ad}</span>}
-                        {f.telefon && <span style={{ marginLeft: 8, color: "#94A3B8" }}>· {f.telefon}</span>}
-                      </div>
-
-                      {/* Badges: SMS, Demo/Ödeme uyarıları */}
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {f.netgsm_baslik && (
-                          <span style={{ fontSize: 10, background: "#F0F9FF", color: "#0284C7", padding: "2px 7px", borderRadius: 20, border: "1px solid #BAE6FD", fontWeight: 600 }}>
-                            📱 {f.netgsm_baslik}
-                          </span>
-                        )}
-                        <span style={{ fontSize: 10, background: (f.sms_kredisi ?? 0) > 10 ? "#F0FDF4" : "#FEF2F2", color: (f.sms_kredisi ?? 0) > 10 ? "#059669" : "#DC2626", padding: "2px 7px", borderRadius: 20, border: `1px solid ${(f.sms_kredisi ?? 0) > 10 ? "#BBF7D0" : "#FECACA"}`, fontWeight: 700 }}>
-                          💬 {f.sms_kredisi ?? 0} SMS
-                        </span>
-                        {f.hesap_durum === "demo" && f.demo_bitis && (
-                          <span style={{ fontSize: 10, background: demKalan > 3 ? "#F5F3FF" : "#FEF2F2", color: demKalan > 3 ? "#7C3AED" : "#DC2626", padding: "2px 7px", borderRadius: 20, border: "1px solid #DDD6FE", fontWeight: 700 }}>
-                            {demKalan > 0 ? `⏳ ${demKalan}g demo` : "🔴 Demo bitti"}
-                          </span>
-                        )}
-                        {f.hesap_durum === "aktif" && f.sonraki_odeme_tarihi && (
-                          <span style={{ fontSize: 10, background: odemeKalan <= 3 ? "#FEF2F2" : "#F0FDF4", color: odemeKalan <= 3 ? "#DC2626" : "#059669", padding: "2px 7px", borderRadius: 20, border: `1px solid ${odemeKalan <= 3 ? "#FECACA" : "#BBF7D0"}`, fontWeight: 700 }}>
-                            {odemeKalan < 0 ? `🔴 ${Math.abs(odemeKalan)}g gecikme` : odemeKalan === 0 ? "🔴 Bugün son gün" : `💰 ${odemeKalan}g sonra ödeme`}
-                          </span>
-                        )}
                       </div>
                     </div>
 

@@ -35,6 +35,10 @@ export async function dbGetir(token: string, isAdmin: boolean): Promise<Siparis[
     const ss = (await sbFetch(query, {}, token)) as Record<string, unknown>[];
     return ss.map((s) => ({
       id: s.id as string, musteri: s.musteri_ad as string, telefon: s.telefon as string,
+      il: s.il as string | undefined,
+      ilce: s.ilce as string | undefined,
+      mahalle: s.mahalle as string | undefined,
+      acik_adres: s.acik_adres as string | undefined,
       adres: (s.adres as string) || "", durum: s.durum as string, notlar: (s.notlar as string) || "",
       fiyat: Number(s.fiyat), tarih: s.tarih as string,
       smsDurum: (s.sms_durum as Record<string, boolean>) || {},
@@ -49,6 +53,7 @@ export async function dbGetir(token: string, isAdmin: boolean): Promise<Siparis[
 
 export async function dbFirmalariGetir(token: string): Promise<Firma[]> {
   const raw = (await sbFetch("firmalar?select=*&order=olusturuldu.desc", {}, token)) as Record<string, unknown>[];
+  console.log("🔥 SUPABASE'DEN GELEN HAM VERİ:", raw);
   return raw.map((f) => ({
     id: f.id as string,
     ad: f.ad as string,
@@ -70,6 +75,11 @@ export async function dbFirmalariGetir(token: string): Promise<Firma[]> {
     abonelik_baslangic: f.abonelik_baslangic as string | undefined,
     son_odeme_tarihi: f.son_odeme_tarihi as string | undefined,
     sonraki_odeme_tarihi: f.sonraki_odeme_tarihi as string | undefined,
+    oto_sms_aktif: f.oto_sms_aktif as boolean | undefined,
+    oto_sms_durumlar: f.oto_sms_durumlar as string[] | undefined,
+    wa_kredisi: f.wa_kredisi as number | undefined,
+    hizmet_ili: f.hizmet_ili as string | undefined,
+    hizmet_ilceleri: f.hizmet_ilceleri as string[] | undefined,
   }));
 }
 
@@ -94,6 +104,11 @@ export async function dbFirmaEkle(
     body.hesap_durum = "demo";
     body.demo_baslangic = new Date().toISOString();
     body.demo_bitis = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    if (extra.hizmet_ili) body.hizmet_ili = extra.hizmet_ili;
+    if (extra.hizmet_ilceleri) { 
+      try { body.hizmet_ilceleri = JSON.parse(extra.hizmet_ilceleri); } 
+      catch { body.hizmet_ilceleri = []; } 
+    }
   }
   await sbFetch("firmalar", { method: "POST", body: JSON.stringify(body) }, token);
 }
@@ -122,6 +137,11 @@ export async function dbFirmaGuncelle(
     if (extra.abonelik_baslangic) body.abonelik_baslangic = extra.abonelik_baslangic;
     if (extra.son_odeme_tarihi) body.son_odeme_tarihi = extra.son_odeme_tarihi;
     if (extra.sonraki_odeme_tarihi) body.sonraki_odeme_tarihi = extra.sonraki_odeme_tarihi;
+    if (extra.hizmet_ili !== undefined) body.hizmet_ili = extra.hizmet_ili || null;
+    if (extra.hizmet_ilceleri !== undefined) { 
+      try { body.hizmet_ilceleri = JSON.parse(extra.hizmet_ilceleri); } 
+      catch { body.hizmet_ilceleri = null; } 
+    }
   }
   await sbFetch(`firmalar?id=eq.${id}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify(body) }, token);
 }
@@ -131,7 +151,8 @@ export async function dbFirmaSil(token: string, id: string): Promise<void> {
 }
 
 export async function dbKaydet(
-  form: { musteri: string; telefon: string; adres: string; notlar: string; tarih: string; firmaId: string; haliKalemleri: HaliKalemi[] },
+  // 📍 FORM TİPİNİ YENİ ALANLARLA GÜNCELLEDİK
+  form: { musteri: string; telefon: string; il?: string; ilce?: string; mahalle?: string; acik_adres?: string; adres: string; notlar: string; tarih: string; firmaId: string; haliKalemleri: HaliKalemi[] },
   editId: string | null,
   ht: HaliTuru[],
   token: string,
@@ -142,18 +163,64 @@ export async function dbKaydet(
     const tur = ht.find((t) => t.id === k.turId);
     return sum + (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1);
   }, 0);
+
   if (editId) {
-    await sbFetch(`siparisler?id=eq.${editId}`, { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ musteri_ad: form.musteri, telefon: form.telefon, adres: form.adres, notlar: form.notlar, fiyat: topFiyat }) }, token);
+    // 📍 PATCH (DÜZENLEME) İŞLEMİNE YENİ ADRES ALANLARI EKLENDİ
+    await sbFetch(
+      `siparisler?id=eq.${editId}`, 
+      { 
+        method: "PATCH", 
+        prefer: "return=minimal", 
+        body: JSON.stringify({ 
+          musteri_ad: form.musteri, 
+          telefon: form.telefon, 
+          il: form.il, 
+          ilce: form.ilce, 
+          mahalle: form.mahalle, 
+          acik_adres: form.acik_adres, 
+          adres: form.adres, 
+          notlar: form.notlar, 
+          fiyat: topFiyat 
+        }) 
+      }, 
+      token
+    );
     await sbFetch(`hali_kalemleri?siparis_id=eq.${editId}`, { method: "DELETE", prefer: "return=minimal" }, token);
   } else {
-    await sbFetch("siparisler", { method: "POST", body: JSON.stringify({ id, musteri_ad: form.musteri, telefon: form.telefon, adres: form.adres, notlar: form.notlar, tarih: form.tarih, fiyat: topFiyat, durum: "bekliyor", firma_id: firmaId || form.firmaId || null, sms_durum: {} }) }, token);
+    // 📍 POST (YENİ KAYIT) İŞLEMİNE YENİ ADRES ALANLARI EKLENDİ
+    await sbFetch(
+      "siparisler", 
+      { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          id, 
+          musteri_ad: form.musteri, 
+          telefon: form.telefon, 
+          il: form.il, 
+          ilce: form.ilce, 
+          mahalle: form.mahalle, 
+          acik_adres: form.acik_adres, 
+          adres: form.adres, 
+          notlar: form.notlar, 
+          tarih: form.tarih, 
+          fiyat: topFiyat, 
+          durum: "bekliyor", 
+          firma_id: firmaId || form.firmaId || null, 
+          sms_durum: {} 
+        }) 
+      }, 
+      token
+    );
   }
+
   const aktifFirmaId = firmaId || form.firmaId;
   if (aktifFirmaId) await dbMusteriKaydet(token, aktifFirmaId, form.musteri, form.telefon, form.adres);
+  
   const kalemler = form.haliKalemleri.map((k) => {
     const tur = ht.find((t) => t.id === k.turId);
     return { siparis_id: id, tur_id: k.turId, adet: k.adet, m2: k.m2, birim_fiyat: tur?.birimFiyat || 0, tutar: (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1) };
   });
+  
   if (kalemler.length > 0) await sbFetch("hali_kalemleri", { method: "POST", body: JSON.stringify(kalemler) }, token);
   return id;
 }

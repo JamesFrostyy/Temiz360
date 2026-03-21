@@ -16,6 +16,10 @@ export interface Siparis {
   id: string;
   musteri: string;
   telefon: string;
+  il?: string;
+  ilce?: string;
+  mahalle?: string;
+  acik_adres?: string;
   adres: string;
   durum: string;
   notlar: string;
@@ -54,6 +58,9 @@ export interface Firma {
   sonraki_odeme_tarihi?: string;
   oto_sms_aktif?: boolean; 
   oto_sms_durumlar?: string[]; // Örn: ['hazir', 'teslim_edildi']
+  wa_kredisi?: number;
+  hizmet_ili?: string;
+  hizmet_ilceleri?: string[];
 }
 
 // Paket tanımları
