@@ -12,7 +12,7 @@ interface DetailSheetProps {
   onStatusChange: (id: string, durum: string) => void;
   onEdit: (order: Siparis) => void;
   onSmsOpen: (order: Siparis) => void;
-  onDelete?: (id: string) => void;  // ← Düzeltildi: JSX değil tip tanımı
+  onDelete?: (id: string) => void;
 }
 
 export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange, onEdit, onSmsOpen, onDelete }: DetailSheetProps) {
@@ -20,9 +20,6 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
   const keys = Object.keys(STATUS_CONFIG);
   const idx = keys.indexOf(order.durum);
   const smsSayisi = Object.values(order.smsDurum || {}).filter(Boolean).length;
-
-  const hasWaApi = firmaOzellikVar(firma, "wa_api");
-  const hasSms = firmaOzellikVar(firma, "sms");
 
   const bildirimLabel = () => {
     const suffix = smsSayisi > 0 ? ` (${smsSayisi})` : "";
@@ -34,6 +31,14 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
     : firma?.paket === "pro"
     ? { bg: "#F0F9FF", color: "#0EA5E9", border: "#BAE6FD", label: "Pro" }
     : { bg: "#EEF2FF", color: "#6366F1", border: "#C7D2FE", label: "Starter" };
+
+  // 📍 AKILLI ADRES VE HARİTA BİRLEŞTİRİCİSİ
+  const adresParcalari = [order.mahalle, order.acik_adres, order.ilce, order.il].filter(Boolean);
+  const gosterilecekAdres = adresParcalari.length > 0 ? adresParcalari.join(" - ") : order.adres;
+  const haritaSorgusu = adresParcalari.length > 0 ? adresParcalari.join(" ") : order.adres;
+  
+  // Paket Kontrolü (Sadece Pro ve Enterprise kullanabilir)
+  const isHaritaAktif = firma?.paket === "pro" || firma?.paket === "enterprise";
 
   return (
     <div
@@ -124,34 +129,54 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
           </div>
         </div>
 
-        {/* İletişim */}
+        {/* İletişim & Adres & Harita */}
         <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid #E2E8F0" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10, textTransform: "uppercase" }}>İletişim & Adres</div>
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 16 }}>📞</span>
               <a href={`tel:${order.telefon}`} style={{ color: "#2563EB", fontWeight: 600, fontSize: 15, textDecoration: "none" }}>{order.telefon}</a>
             </div>
-            {order.adres && (
+            
+            {/* 📍 Akıllı Adres Gösterimi */}
+            {gosterilecekAdres && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <span style={{ fontSize: 16 }}>📍</span>
                 <div style={{ flex: 1 }}>
-                  <span style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 6 }}>{order.adres}</span>
+                  <span style={{ color: "#334155", fontSize: 14, display: "block", marginBottom: 8 }}>{gosterilecekAdres}</span>
                   
-                  {/* 👇 SADECE PRO VE ÜSTÜ PAKETLER GÖREBİLİR 👇 */}
-                  {firmaOzellikVar(firma, 'yol_tarifi') && (
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.adres)}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#0EA5E9", background: "#F0F9FF", padding: "6px 12px", borderRadius: 8, textDecoration: "none", border: "1px solid #BAE6FD" }}
-                    >
-                      🗺️ Haritada Yol Tarifi Al
-                    </a>
+                  {/* 🗺️ HARİTA BUTONLARI */}
+                  {isHaritaAktif ? (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {/* Google Maps */}
+                      <a 
+                        href={`https://maps.google.com/?q=${encodeURIComponent(haritaSorgusu)}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#059669", background: "#F0FDF4", padding: "8px 12px", borderRadius: 8, textDecoration: "none", border: "1px solid #BBF7D0", transition: "all 0.2s" }}
+                      >
+                        🗺️ Google Maps
+                      </a>
+                      
+                      {/* Yandex Maps */}
+                      <a 
+                        href={`https://yandex.com.tr/harita/?text=${encodeURIComponent(haritaSorgusu)}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: "#DC2626", background: "#FEF2F2", padding: "8px 12px", borderRadius: 8, textDecoration: "none", border: "1px solid #FECACA", transition: "all 0.2s" }}
+                      >
+                        📍 Yandex Navi
+                      </a>
+                    </div>
+                  ) : (
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 600, color: "#94A3B8", background: "#F1F5F9", padding: "6px 12px", borderRadius: 8, border: "1px dashed #CBD5E1" }}>
+                      🔒 Harita navigasyonu Pro pakete özeldir
+                    </div>
                   )}
                 </div>
               </div>
             )}
+
             {order.notlar && (
               <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <span style={{ fontSize: 16 }}>📝</span>
@@ -202,7 +227,7 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
         {/* Starter paket upsell uyarısı */}
         {!isAdmin && firma?.paket === "starter" && (
           <div style={{ marginTop: 12, padding: "10px 14px", background: "#FFF7ED", borderRadius: 10, border: "1px solid #FED7AA", fontSize: 12, color: "#92400E", textAlign: "center" }}>
-            💡 <strong>Pro pakete geçin</strong> — WhatsApp Business API ve SMS ile müşterilere otomatik bildirim gönderin.
+            💡 <strong>Pro pakete geçin</strong> — Harita navigasyonu ve Otomatik SMS entegrasyonu ile hız kazanın.
           </div>
         )}
       </div>
