@@ -18,7 +18,12 @@ import { useOrderActions } from "./hooks/useOrderActions";
 import { HesabimEkrani } from "./components/HesabimEkrani";
 import { authRequestPasswordReset, authVerifyOtp, authSetPassword } from "./lib/auth";
 
-
+// --- TARİH YARDIMCI FONKSİYONLARI ---
+const bugunTarih = () => new Date().toISOString().split("T")[0];
+const ayBasi = () => { 
+  const d = new Date(); d.setDate(1); 
+  return d.toISOString().split("T")[0]; 
+};
 
 // ─── RAPOR ────────────────────────────────────────────────────────────────────
 function RaporEkrani({ orders, ht }: { orders: Siparis[]; ht: HaliTuru[] }) {
@@ -130,17 +135,25 @@ export default function App() {
 
   const { orders, setOrders, firmalar, ht, setHt, firmaId, firmaAd, loading, err, yukle, hesapAktif } = useOrders(
   user?.token || "", isAdmin, user?.email || "");
+  
   const [sel, setSel] = useState<Siparis | null>(null);
   const [filterStatus, setFilterStatus] = useState("Tümü");
   const [filterFirma, setFilterFirma] = useState("Tümü");
   const [search, setSearch] = useState("");
+  
+  // 📍 YENİ: Tarih Aralığı Filtreleri
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+
   const [showOrder, setShowOrder] = useState(false);
   const [editing, setEditing] = useState<Siparis | null>(null);
   const [smsOrder, setSmsOrder] = useState<Siparis | null>(null);
-  const [activeTab, setActiveTab] = useState("siparisler");
+  
+  // 📍 YENİ: İlk açılış sekmesi artık "raporlar"
+  const [activeTab, setActiveTab] = useState("raporlar");
+  
   const [showHali, setShowHali] = useState(false);
   const [showFirma, setShowFirma] = useState(false);
-  const [showFilter, setShowFilter] = useState(false);
   const [toast, setToast] = useState<ToastState>({ msg: null, type: "success" });
   const [showMusteriGecmisi, setShowMusteriGecmisi] = useState(false);
   const [musteriData, setMusteriData] = useState<{ ad: string; telefon: string } | null>(null);
@@ -149,15 +162,20 @@ export default function App() {
 
   useEffect(() => { if (authState === "app") yukle(); }, [authState, yukle]);
 
-  // Filtreleme
+  // 📍 GÜNCELLENMİŞ FİLTRELEME MANTIĞI (Tarih eklendi)
   const filtered = orders.filter((o) => {
     if (filterStatus !== "Tümü" && o.durum !== filterStatus) return false;
     if (filterFirma !== "Tümü" && o.firmaId !== filterFirma) return false;
     if (search && !o.musteri.toLowerCase().includes(search.toLowerCase()) && !o.telefon.includes(search) && !o.id.includes(search)) return false;
+    
+    if (startDate && o.tarih < startDate) return false;
+    if (endDate && o.tarih > endDate) return false;
+
     return true;
   });
 
-  const aktifFiltre = (filterStatus !== "Tümü" ? 1 : 0) + (filterFirma !== "Tümü" ? 1 : 0) + (search ? 1 : 0);
+  // Filtrelenen Siparişlerin Toplam Cirosu
+  const filteredCiro = filtered.reduce((sum, o) => sum + (o.fiyat || 0), 0);
 
   const { handleSave, handleStatus, handleSms, handleSil } = useOrderActions({
     user,
@@ -171,7 +189,6 @@ export default function App() {
     showToast,
   });
 
-  // ✅ handleSave artık editingId'yi ayrı alıyor — OrderModal'ın onSave imzasına uygun wrapper
   const handleSaveWrapper = async (form: OrderForm) => {
     await handleSave(form, editing?.id || null);
     await yukle();
@@ -275,11 +292,13 @@ export default function App() {
 
       {/* İçerik */}
       {activeTab === "raporlar" && <RaporEkrani orders={orders} ht={ht} />}
+      
       {activeTab === "fiyatlar" && (
         <div style={{ padding: 24, maxWidth: 600, margin: "0 auto" }}>
           <button onClick={() => setShowHali(true)} style={{ width: "100%", padding: 16, borderRadius: 12, border: "none", background: "linear-gradient(135deg,#2563EB,#3B82F6)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 16, fontFamily: "inherit" }}>🪄 Fiyat Listesini Düzenle</button>
         </div>
       )}
+      
       {activeTab === "hesabim" && (
         <HesabimEkrani
           firma={firmalar.find((f) => f.id === firmaId) ?? null}
@@ -289,7 +308,7 @@ export default function App() {
       )}
 
       {activeTab === "siparisler" && (
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 100px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 100px", width: "100%", boxSizing: "border-box" }}>
 
           {/* Hesap Pasif Uyarısı */}
           {!isAdmin && !hesapAktif && (
@@ -306,26 +325,69 @@ export default function App() {
               </div>
             </div>
           )}
-          {/* Arama & Filtre */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Müşteri, telefon veya sipariş no ara..." style={{ flex: 1, minWidth: 200, padding: "10px 16px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 14, fontFamily: "inherit", outline: "none" }} />
-            <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 14, fontFamily: "inherit", background: "#fff", cursor: "pointer" }}>
-              {STATUSLAR.map((s) => <option key={s} value={s}>{s === "Tümü" ? "Tüm Durumlar" : STATUS_CONFIG[s]?.label}</option>)}
-            </select>
+
+          {/* 📍 YENİ: GELİŞMİŞ FİLTRELEME PANELİ */}
+          <div style={{ background: "#fff", padding: "16px 20px", borderRadius: 16, border: "1px solid #E2E8F0", marginBottom: 20, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)" }}>
+             
+             {/* Üst Kısım: Arama ve Hızlı Butonlar */}
+             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", flex: 1 }}>
+                   <input 
+                     value={search} 
+                     onChange={(e) => setSearch(e.target.value)} 
+                     placeholder="Müşteri, telefon veya sipariş no ara..." 
+                     style={{ minWidth: 240, flex: 1, padding: "10px 16px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 13, outline: "none", fontFamily: "inherit" }} 
+                   />
+                   <select 
+                     value={filterStatus} 
+                     onChange={(e) => setFilterStatus(e.target.value)} 
+                     style={{ padding: "10px 16px", borderRadius: 10, border: "1px solid #CBD5E1", fontSize: 13, background: "#fff", cursor: "pointer", minWidth: 160, fontFamily: "inherit" }}
+                   >
+                     {STATUSLAR.map((s) => <option key={s} value={s}>{s === "Tümü" ? "Tüm Durumlar" : STATUS_CONFIG[s]?.label}</option>)}
+                   </select>
+                </div>
+                
+                {/* Hızlı Tarih Butonları */}
+                <div style={{ display: "flex", gap: 8 }}>
+                   <button onClick={() => { setStartDate(bugunTarih()); setEndDate(bugunTarih()); }} style={{ padding: "8px 16px", fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0", background: "#F8FAFC", cursor: "pointer", fontWeight: 600, color: "#475569" }}>Bugün</button>
+                   <button onClick={() => { setStartDate(ayBasi()); setEndDate(""); }} style={{ padding: "8px 16px", fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0", background: "#F8FAFC", cursor: "pointer", fontWeight: 600, color: "#475569" }}>Bu Ay</button>
+                   <button onClick={() => { setStartDate(""); setEndDate(""); setSearch(""); setFilterStatus("Tümü"); }} style={{ padding: "8px 16px", fontSize: 12, borderRadius: 8, border: "none", background: "#FEF2F2", color: "#DC2626", cursor: "pointer", fontWeight: 700 }}>Temizle</button>
+                </div>
+             </div>
+
+             {/* Alt Kısım: Tarih Seçici ve Özet */}
+             <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between", borderTop: "1px dashed #E2E8F0", paddingTop: 16 }}>
+                
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                   <div style={{ fontSize: 12, fontWeight: 800, color: "#64748B", letterSpacing: "0.5px" }}>TARİH ARALIĞI:</div>
+                   <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, outline: "none", fontFamily: "inherit" }} />
+                   <span style={{ color: "#94A3B8", fontWeight: 800 }}>-</span>
+                   <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, outline: "none", fontFamily: "inherit" }} />
+                </div>
+
+                {/* Filtre Özeti */}
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ fontSize: 13, color: "#64748B" }}>Bulunan: <strong style={{ color: "#0F172A", fontSize: 15 }}>{filtered.length}</strong> sipariş</div>
+                  <div style={{ padding: "6px 14px", background: "#F0FDF4", borderRadius: 8, border: "1px solid #BBF7D0", color: "#059669", fontWeight: 800, fontSize: 15 }}>
+                     Ciro: ₺{filteredCiro.toLocaleString()}
+                  </div>
+                </div>
+
+             </div>
           </div>
 
-          {/* Tablo - DESKTOP */}
-          <div className="order-table" style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden" }}>
+          {/* Tablo - DESKTOP (width: 100% sorunu çözüldü) */}
+          <div className="order-table" style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden", width: "100%" }}>
             {loading ? (
               <div style={{ padding: 60, textAlign: "center" }}>
                 <div style={{ width: 40, height: 40, border: "3px solid #E2E8F0", borderTop: "3px solid #3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
               </div>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
                 <thead>
                   <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0" }}>
                     {["No", "Müşteri", "Halı Detayı", "Tutar", "Durum", "SMS", "Tarih", "İşlem"].map((h) => (
-                      <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>{h}</th>
+                      <th key={h} style={{ padding: "14px 16px", textAlign: "left", fontSize: 12, fontWeight: 800, color: "#64748B", textTransform: "uppercase" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -344,7 +406,7 @@ export default function App() {
                           >
                             {order.musteri}
                           </div>
-                          <div style={{ fontSize: 12, color: "#64748B" }}>{order.telefon}</div>
+                          <div style={{ fontSize: 12, color: "#64748B", marginTop: 4 }}>{order.telefon}</div>
                         </td>
                         <td style={{ padding: "14px 16px" }}>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -367,15 +429,11 @@ export default function App() {
                 </tbody>
               </table>
             )}
-            {!loading && filtered.length > 0 && (
-              <div style={{ padding: "12px 20px", borderTop: "1px solid #E2E8F0", fontSize: 13, color: "#64748B", background: "#F8FAFC" }}>
-                Toplam <strong>{filtered.length}</strong> sipariş
-              </div>
-            )}
           </div>
 
           {/* Kartlar - MOBİL */}
           <div className="order-cards">
+            {/* (Mobil kart kodu aynı bırakıldı) */}
             {loading ? (
               <div style={{ padding: 40, textAlign: "center" }}>
                 <div style={{ width: 36, height: 36, border: "3px solid #E2E8F0", borderTop: "3px solid #3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
@@ -418,11 +476,6 @@ export default function App() {
                 </div>
               );
             })}
-            {!loading && filtered.length > 0 && (
-              <div style={{ padding: "6px 4px", fontSize: 13, color: "#94A3B8", textAlign: "center" }}>
-                Toplam <strong style={{ color: "#475569" }}>{filtered.length}</strong> sipariş
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -439,7 +492,7 @@ export default function App() {
           if (!hesapAktif) { showToast("Hesabınız aktif değil.", "error"); return; }
           setEditing(null); setShowOrder(true);
         }} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", cursor: hesapAktif ? "pointer" : "not-allowed", fontFamily: "inherit", flex: 1 }}>
-          <div style={{ width: 44, height: 44, borderRadius: "50%", background: hesapAktif ? "linear-gradient(135deg,#3B82F6,#2563EB)" : "#E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginTop: -22, boxShadow: hesapAktif ? "0 8px 16px rgba(37,99,235,0.3)" : "none", color: hesapAktif ? "#fff" : "#94A3B8" }}>➕</div>
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: hesapAktif ? "linear-gradient(135deg,#3B82F6,#2563EB)" : "#E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginTop: -22, boxShadow: hesapAktif ? "0 8px 16px rgba(37,99,235,0.3)": "none",color: hesapAktif ? "#fff" : "#94A3B8" }}>➕</div>
           <span style={{ fontSize: 11, color: "#64748B" }}>Ekle</span>
         </button>
       </div>
@@ -491,7 +544,6 @@ export default function App() {
               { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ sms_kredisi: yeniKredi }) },
               user.token
             );
-            // Local state'i de güncelle
             yukle();
           }}
         />
@@ -529,7 +581,7 @@ export default function App() {
   );
 }
 
-// ─── LOGIN & SET PASSWORD EKRANLARI ──────────────────────────────────────────
+// ─── LOGIN & SET PASSWORD EKRANLARI AYNEN DEVAM EDİYOR ─────────────────────────
 function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -538,8 +590,6 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
-  
-  // Ekran durumunu kontrol eden State: 'login' | 'forgot' | 'otp'
   const [step, setStep] = useState<"login" | "forgot" | "otp">("login");
 
   const handleLogin = async () => {
@@ -559,9 +609,7 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
       setMsg("8 haneli güvenlik kodu email adresinize gönderildi.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Mail gönderilemedi. Lütfen adresi kontrol edin.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleReset = async () => {
@@ -573,13 +621,10 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
       setStep("login");
       setPassword(newPassword);
       setMsg("Şifreniz başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.");
-      setOtpCode("");
-      setNewPassword("");
+      setOtpCode(""); setNewPassword("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "İşlem başarısız. Kod yanlış veya süresi dolmuş olabilir.");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const inp: React.CSSProperties = { width: "100%", padding: "14px 16px", borderRadius: 12, border: "1.5px solid #E2E8F0", fontSize: 15, fontFamily: "'Poppins', sans-serif", outline: "none", boxSizing: "border-box" };
@@ -601,7 +646,6 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
         {msg && <div style={{ color: "#059669", background: "#ECFDF5", padding: "12px", borderRadius: 8, fontSize: 13, marginBottom: 16, fontWeight: 600, border: "1px solid #A7F3D0", textAlign: "center" }}>✅ {msg}</div>}
         {err && <div style={{ color: "#DC2626", background: "#FEF2F2", padding: "12px", borderRadius: 8, fontSize: 13, marginBottom: 16, fontWeight: 600, border: "1px solid #FECACA", textAlign: "center" }}>❌ {err}</div>}
 
-        {/* 1. ADIM: STANDART GİRİŞ EKRANI */}
         {step === "login" && (
           <div style={{ display: "grid", gap: 12 }}>
             <input style={inp} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email adresiniz" onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
@@ -618,7 +662,6 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
           </div>
         )}
 
-        {/* 2. ADIM: ŞİFRE SIFIRLAMA TALEBİ EKRANI (Mevcut kullanıcılar için) */}
         {step === "forgot" && (
           <div style={{ display: "grid", gap: 12 }}>
             <input style={inp} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Kayıtlı email adresiniz" onKeyDown={(e) => e.key === "Enter" && handleForgot()} />
@@ -631,7 +674,6 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
           </div>
         )}
 
-        {/* 3. ADIM: DAVET KODU / ŞİFRE BELİRLEME EKRANI (Yeni veya şifre sıfırlayanlar için) */}
         {step === "otp" && (
           <div style={{ display: "grid", gap: 12 }}>
             <div style={{ fontSize: 13, color: "#64748B", textAlign: "center", marginBottom: 4 }}>
@@ -649,7 +691,6 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
             </button>
           </div>
         )}
-
       </div>
     </div>
   );

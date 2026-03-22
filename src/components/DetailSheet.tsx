@@ -42,7 +42,7 @@ export function DetailSheet({ order, ht, isAdmin, firma, onClose, onStatusChange
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 800, fontFamily: "'Poppins', sans-serif" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.65)", display: "flex", alignItems: "flex-start", paddingTop: "6vh", justifyContent: "center", zIndex: 800, fontFamily: "'Poppins', sans-serif" }}
       onClick={onClose}
     >
       <div
