@@ -299,8 +299,18 @@ export default function App() {
       {activeTab === "raporlar" && <RaporEkrani orders={orders} ht={ht} />}
       
       {activeTab === "fiyatlar" && (
-        <div style={{ padding: 24, maxWidth: 600, margin: "0 auto" }}>
-          <button onClick={() => setShowHali(true)} style={{ width: "100%", padding: 16, borderRadius: 12, border: "none", background: "linear-gradient(135deg,#2563EB,#3B82F6)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 16, fontFamily: "inherit" }}>🪄 Fiyat Listesini Düzenle</button>
+        <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 20px 100px", width: "100%", boxSizing: "border-box" }}>
+          <div style={{ background: "#fff", borderRadius: 20, padding: 24, border: "1px solid #E2E8F0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)" }}>
+            <h2 style={{ margin: "0 0 20px", fontSize: 22, fontWeight: 800, color: "#0F172A" }}>🪄 Fiyat Listesi</h2>
+            {/* Eski popup mantığını direkt sayfa içine gömdük, iptal tuşunu gizledik */}
+            <div style={{ margin: "-20px" }}>
+              <HaliModal 
+                turler={ht} 
+                onClose={() => {}} // İptale basılırsa bir şey yapmasına gerek yok çünkü artık sayfa
+                onSave={handleHaliTurleriSave} 
+              />
+            </div>
+          </div>
         </div>
       )}
       
