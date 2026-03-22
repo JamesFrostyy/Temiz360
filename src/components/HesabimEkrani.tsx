@@ -79,7 +79,7 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   const paket = PAKETLER[paketKey];
   const durumCfg = HESAP_DURUM_CFG[firma.hesap_durum || "demo"];
   const smsKredisi = firma.sms_kredisi ?? 0;
-  const smsYuzde = Math.min(100, Math.round((smsKredisi / 50) * 100));
+  const smsYuzde = Math.min(100, Math.round((smsKredisi / 100) * 100)); // Starter 100 limite göre yüzde hesaplar
   const demKalan = gunFarki(firma.demo_bitis);
   const odemeKalan = gunFarki(firma.sonraki_odeme_tarihi);
   const paketSirasi: PaketTip[] = ["starter", "pro", "enterprise"];
@@ -94,7 +94,6 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         <p style={{ margin: "4px 0 0", color: "#64748B", fontSize: 14 }}>Paket bilgileriniz ve operasyon ayarlarınız</p>
       </div>
 
-      {/* 📍 DESKTOP İÇİN 3 SÜTUNLU GRID DÜZENİ */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20, alignItems: "start" }}>
 
         {/* 1. SÜTUN: ABONELİK VE PROFİL */}
@@ -282,39 +281,53 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
           )}
         </div>
 
-        {/* 3. SÜTUN: SMS, ÖZELLİKLER VE DESTEK */}
+        {/* 3. SÜTUN: BİLDİRİM, ÖZELLİKLER VE DESTEK */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           
+          {/* YENİ: Pakete Göre Değişen Bildirim Alanı */}
           <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>SMS Kredisi</div>
-              <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: smsKredisi > 10 ? "#F0FDF4" : smsKredisi > 0 ? "#FFF7ED" : "#FEF2F2", color: smsKredisi > 10 ? "#059669" : smsKredisi > 0 ? "#D97706" : "#DC2626", border: `1px solid ${smsKredisi > 10 ? "#BBF7D0" : smsKredisi > 0 ? "#FDE68A" : "#FECACA"}` }}>
-                {smsKredisi > 10 ? "✓ Yeterli" : smsKredisi > 0 ? "⚠️ Azalıyor" : "🚫 Tükendi"}
-              </span>
-            </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 10 }}>
-              <span style={{ fontSize: 36, fontWeight: 800, color: smsKredisi > 10 ? "#059669" : smsKredisi > 0 ? "#D97706" : "#DC2626" }}>{smsKredisi}</span>
-              <span style={{ fontSize: 14, color: "#64748B" }}>SMS kaldı</span>
-            </div>
-            <div style={{ width: "100%", height: 8, background: "#F1F5F9", borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ width: `${smsYuzde}%`, height: "100%", borderRadius: 6, background: smsKredisi > 10 ? "linear-gradient(90deg,#059669,#34D399)" : smsKredisi > 0 ? "linear-gradient(90deg,#D97706,#FBBF24)" : "#DC2626" }} />
-            </div>
-            {smsKredisi <= 10 && (
-              <div style={{ fontSize: 13, color: smsKredisi === 0 ? "#DC2626" : "#D97706", fontWeight: 600, marginTop: 6 }}>
-                {smsKredisi === 0 ? "SMS krediniz tükendi. Yöneticinizle iletişime geçin." : "Krediniz azalıyor."}
-              </div>
+            
+            {paketKey === "starter" ? (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>WhatsApp Bildirim Hakkı</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: smsKredisi > 10 ? "#F0FDF4" : smsKredisi > 0 ? "#FFF7ED" : "#FEF2F2", color: smsKredisi > 10 ? "#059669" : smsKredisi > 0 ? "#D97706" : "#DC2626", border: `1px solid ${smsKredisi > 10 ? "#BBF7D0" : smsKredisi > 0 ? "#FDE68A" : "#FECACA"}` }}>
+                    {smsKredisi > 10 ? "✓ Yeterli" : smsKredisi > 0 ? "⚠️ Azalıyor" : "🚫 Tükendi"}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 10 }}>
+                  <span style={{ fontSize: 36, fontWeight: 800, color: smsKredisi > 10 ? "#059669" : smsKredisi > 0 ? "#D97706" : "#DC2626" }}>{smsKredisi}</span>
+                  <span style={{ fontSize: 14, color: "#64748B" }}>hak kaldı</span>
+                </div>
+                <div style={{ width: "100%", height: 8, background: "#F1F5F9", borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
+                  <div style={{ width: `${smsYuzde}%`, height: "100%", borderRadius: 6, background: smsKredisi > 10 ? "linear-gradient(90deg,#059669,#34D399)" : smsKredisi > 0 ? "linear-gradient(90deg,#D97706,#FBBF24)" : "#DC2626" }} />
+                </div>
+                <div style={{ fontSize: 12, color: "#64748B", marginTop: 10 }}>
+                  Starter pakette aylık 100 ücretsiz WhatsApp (wa.me) bildirim hakkınız bulunur. Limitiniz dolduğunda manuel gönderim yapabilirsiniz.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>NetGSM SMS Entegrasyonu</div>
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: firma.netgsm_user ? "#F0FDF4" : "#FEF2F2", color: firma.netgsm_user ? "#059669" : "#DC2626", border: `1px solid ${firma.netgsm_user ? "#BBF7D0" : "#FECACA"}` }}>
+                    {firma.netgsm_user ? "✓ Aktif" : "⚠️ Bağlantı Yok"}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, color: "#334155", marginBottom: 12 }}>
+                  Kendi NetGSM aboneliğiniz üzerinden müşterilerinize <strong style={{color: "#059669"}}>Sınırsız Otomatik SMS</strong> gönderebilirsiniz.
+                </div>
+                {firma.netgsm_user ? (
+                  <div style={{ padding: "10px 12px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, color: "#475569" }}>
+                    📱 SMS Gönderici Başlığı:<br/> <strong style={{fontSize: 15, color: "#0F172A"}}>{firma.netgsm_baslik || "Belirtilmemiş"}</strong>
+                  </div>
+                ) : (
+                  <div style={{ padding: "10px 12px", background: "#FEF2F2", borderRadius: 8, border: "1px dashed #FECACA", fontSize: 12, color: "#991B1B" }}>
+                    NetGSM bilgileriniz sisteme girilmemiş. Bağlantı için yönetici ile iletişime geçiniz.
+                  </div>
+                )}
+              </>
             )}
-            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed #E2E8F0" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 10 }}>HIZLI SMS PAKETİ YÜKLE</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                <a href={`https://www.shopier.com/yikanio/1000SMS?email=${firma.email}`} target="_blank" rel="noreferrer" style={{ flex: 1, padding: "8px", textAlign: "center", background: "#F8FAFC", color: "#334155", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", border: "1px solid #CBD5E1", transition: "all 0.2s" }}>
-                  +1.000 SMS <br/><span style={{ fontSize: 11, color: "#64748B", fontWeight: 500 }}>₺250</span>
-                </a>
-                <a href={`https://www.shopier.com/yikanio/5000SMS?email=${firma.email}`} target="_blank" rel="noreferrer" style={{ flex: 1, padding: "8px", textAlign: "center", background: "#F0FDF4", color: "#065F46", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", border: "1px solid #A7F3D0", transition: "all 0.2s" }}>
-                  +5.000 SMS <br/><span style={{ fontSize: 11, color: "#059669", fontWeight: 500 }}>₺1.000</span>
-                </a>
-              </div>
-            </div>
           </div>
 
           <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
@@ -350,7 +363,7 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   );
 }
 
-// OdemeModal kodu aynen devam ediyor... (Değişiklik yok)
+// OdemeModal kodu
 interface OdemeModalProps { firma: Firma; token: string; mevcutPaket: PaketTip; mevcutDurum: string; secilebilenPaketler: PaketTip[]; onClose: () => void; onBasarili: () => void; }
 function OdemeModal({ firma, token, mevcutPaket, mevcutDurum, secilebilenPaketler, onClose, onBasarili }: OdemeModalProps) {
   const paketSirasi: PaketTip[] = ["starter", "pro", "enterprise"];
@@ -411,6 +424,11 @@ function OdemeModal({ firma, token, mevcutPaket, mevcutDurum, secilebilenPaketle
             <div style={{ fontSize: 24, fontWeight: 800 }}>₺{odenecekToplamTutar.toLocaleString()}</div>
           </div>
           <div style={{ borderTop: "1px solid #334155", paddingTop: 10, fontSize: 13, color: "#94A3B8" }}>{firma.ad} · {firma.email}</div>
+        </div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap", justifyContent: "center" }}>
+          {["🔒 SSL şifreleme", "💳 Tüm kartlar", "🚫 Taahhüt yok"].map((item) => (
+            <div key={item} style={{ fontSize: 12, color: "#64748B" }}>{item}</div>
+          ))}
         </div>
         <button onClick={shopierOdemeBaslat} disabled={yukleniyor || secilenPaket === mevcutPaket && mevcutDurum !== "demo"} style={{ width: "100%", padding: "18px", borderRadius: 14, border: "none", background: yukleniyor ? "#E2E8F0" : "linear-gradient(135deg,#2563EB,#3B82F6)", color: yukleniyor ? "#94A3B8" : "#fff", cursor: yukleniyor ? "not-allowed" : "pointer", fontWeight: 800, fontSize: 16, fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
           {yukleniyor ? "Yönlendiriliyor..." : <><span style={{ fontSize: 20 }}>💳</span> Güvenli Öde — ₺{odenecekToplamTutar.toLocaleString()}</>}
