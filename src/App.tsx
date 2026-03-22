@@ -160,7 +160,12 @@ export default function App() {
 
   const showToast = (msg: string, type = "success") => setToast({ msg, type });
 
-  useEffect(() => { if (authState === "app") yukle(); }, [authState, yukle]);
+  useEffect(() => { 
+    if (authState === "app") {
+      yukle();
+      setActiveTab("raporlar"); // 📍 Her girişte zorla Raporlar sekmesini açtır
+    }
+  }, [authState, yukle]);
 
   // 📍 GÜNCELLENMİŞ FİLTRELEME MANTIĞI (Tarih eklendi)
   const filtered = orders.filter((o) => {
