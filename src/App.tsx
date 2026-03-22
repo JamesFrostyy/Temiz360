@@ -258,7 +258,7 @@ export default function App() {
 
   // ─── ANA EKRAN ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Poppins', sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Poppins', sans-serif", overflowY: "scroll" }}>
       {/* Header */}
       <header style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 20px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -268,10 +268,16 @@ export default function App() {
                 <img src="/logo.png" alt="Yıkanio Logo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <div>
-                <div style={{ color: "#0F172A", fontWeight: 800, fontSize: "20px", lineHeight: 1, letterSpacing: "-0.5px" }}>
-                  Yıkan<span style={{ color: "#38BDF8" }}>io</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ color: "#0F172A", fontWeight: 800, fontSize: "22px", lineHeight: 1, letterSpacing: "-0.5px" }}>
+                    Yıkan<span style={{ color: "#38BDF8" }}>io</span>
+                  </div>
+                  {/* YENİ: SEO ve Marka Mottosu */}
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "3px 8px", borderRadius: 8, border: "1px solid #BFDBFE", letterSpacing: "0.2px", whiteSpace: "nowrap" }}>
+                    🚀 Akıllı Halı Yıkama Yönetimi
+                  </span>
                 </div>
-                <div style={{ color: "#64748B", fontSize: "11px", marginTop: "3px", fontWeight: 500, letterSpacing: "0.5px" }}>
+                <div style={{ color: "#64748B", fontSize: "11px", marginTop: "4px", fontWeight: 600, letterSpacing: "0.5px" }}>
                   {firmaAd ? `🏢 ${firmaAd.toUpperCase()}` : user?.email}
                 </div>
               </div>
