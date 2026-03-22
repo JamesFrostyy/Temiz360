@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { Siparis, HaliTuru, HaliKalemi, Firma } from "../types";
 import { toplamM2, toplamAdet, dbMusteriAra } from "../lib/db";
 import { ADRES_DATA, ILLER } from "../data/adres";
-import { sbFetch } from "../lib/supabase"; // 📍 YENİ: Veritabanına doğrudan bağlanmak için eklendi
+import { sbFetch } from "../lib/supabase";
 
 interface OrderModalProps {
   order: Siparis | null;
+  orders: Siparis[]; // 📍 YENİ EKLENDİ: Borç hesaplamak için tüm siparişler
   ht: HaliTuru[];
   firmalar: Firma[];
   firma?: Firma | null;
@@ -30,23 +31,16 @@ export interface OrderForm {
   haliKalemleri: HaliKalemi[];
 }
 
-interface MusteriOneri {
-  id: string;
-  ad_soyad: string;
-  telefon: string;
-  adres: string;
-}
+interface MusteriOneri { id: string; ad_soyad: string; telefon: string; adres: string; }
 
 const inp: React.CSSProperties = {
-  padding: "10px 14px", borderRadius: 10,
-  border: "1.5px solid #E2E8F0", fontSize: 14,
-  fontFamily: "'Poppins', sans-serif", outline: "none",
-  width: "100%", boxSizing: "border-box", background: "#fff",
+  padding: "10px 14px", borderRadius: 10, border: "1.5px solid #E2E8F0", fontSize: 14,
+  fontFamily: "'Poppins', sans-serif", outline: "none", width: "100%", boxSizing: "border-box", background: "#fff",
 };
 
 const bugun = () => new Date().toISOString().split("T")[0];
 
-export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId: propFirmaId, onClose, onSave }: OrderModalProps) {
+export function OrderModal({ order, orders, ht, firmalar, firma, isAdmin, token, firmaId: propFirmaId, onClose, onSave }: OrderModalProps) {
   const [musteri, setMusteri] = useState("");
   const [telefon, setTelefon] = useState("");
   
@@ -71,9 +65,6 @@ export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId
   const seciliFirmaId = isAdmin && firmaId ? firmaId : propFirmaId;
   const aktifFirma = firma || firmalar.find((f) => f.id === seciliFirmaId);
 
-  // =========================================================================
-  // 🚀 THE BYPASS: App.tsx'e güvenme, güncel veriyi direkt veritabanından çek
-  // =========================================================================
   const [dbHizmetIli, setDbHizmetIli] = useState<string>("");
   const [dbHizmetIlceleri, setDbHizmetIlceleri] = useState<string[]>([]);
 
@@ -84,110 +75,65 @@ export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId
           if (res && res.length > 0) {
             const gercekIl = res[0].hizmet_ili || "";
             const gercekIlceler = res[0].hizmet_ilceleri || [];
-            
-            setDbHizmetIli(gercekIl);
-            setDbHizmetIlceleri(gercekIlceler);
-
-            // Eğer yeni sipariş ekleniyorsa, ili otomatik ayarla
-            if (!order && gercekIl) {
-              setIl(gercekIl);
-            }
+            setDbHizmetIli(gercekIl); setDbHizmetIlceleri(gercekIlceler);
+            if (!order && gercekIl) setIl(gercekIl);
           }
-        })
-        .catch(err => console.error("Bypass fetch hatası:", err));
+        }).catch(err => console.error("Bypass fetch hatası:", err));
     }
   }, [seciliFirmaId, token, order]);
 
-  // Nihai Kilit Verileri (Bypass verisi varsa onu kullan, yoksa aktifFirma'yı)
   const kilitliIl = dbHizmetIli || aktifFirma?.hizmet_ili || "";
   const yetkiliIlceler = dbHizmetIlceleri.length > 0 ? dbHizmetIlceleri : (aktifFirma?.hizmet_ilceleri || []);
-  // =========================================================================
 
   useEffect(() => {
     if (order) {
-      setMusteri(order.musteri);
-      setTelefon(order.telefon);
-      setIl(order.il || kilitliIl);
-      setIlce(order.ilce || "");
-      setMahalle(order.mahalle || "");
-      setAcikAdres(order.acik_adres || "");
-      setAdres(order.adres || ""); 
-      setNotlar(order.notlar);
-      setTarih(order.tarih);
-      setFirmaId(order.firmaId || "");
-      setKalemler(order.haliKalemleri || []);
+      setMusteri(order.musteri); setTelefon(order.telefon); setIl(order.il || kilitliIl);
+      setIlce(order.ilce || ""); setMahalle(order.mahalle || ""); setAcikAdres(order.acik_adres || "");
+      setAdres(order.adres || ""); setNotlar(order.notlar); setTarih(order.tarih);
+      setFirmaId(order.firmaId || ""); setKalemler(order.haliKalemleri || []);
     } else {
-      setMusteri(""); setTelefon("");
-      setIl(kilitliIl); 
-      setIlce(""); setMahalle(""); setAcikAdres(""); setAdres("");
-      setNotlar(""); setTarih(bugun());
-      setFirmaId(isAdmin && firmalar.length > 0 ? firmalar[0].id : propFirmaId);
-      setKalemler([]);
+      setMusteri(""); setTelefon(""); setIl(kilitliIl); setIlce(""); setMahalle(""); setAcikAdres(""); setAdres("");
+      setNotlar(""); setTarih(bugun()); setFirmaId(isAdmin && firmalar.length > 0 ? firmalar[0].id : propFirmaId); setKalemler([]);
     }
   }, [order, firmalar, isAdmin, propFirmaId, kilitliIl]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (musteriRef.current && !musteriRef.current.contains(e.target as Node)) {
-        setShowOneriler(false);
-      }
+      if (musteriRef.current && !musteriRef.current.contains(e.target as Node)) { setShowOneriler(false); }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   const musteriDegisti = (val: string) => {
     setMusteri(val);
     if (aramaTimer) clearTimeout(aramaTimer);
     if (val.length < 2) { setOneriler([]); setShowOneriler(false); return; }
-
     const t_aktifFirmaId = isAdmin ? firmaId : propFirmaId;
     if (!t_aktifFirmaId) return;
 
     const timer = setTimeout(async () => {
       const sonuc = await dbMusteriAra(token, t_aktifFirmaId, val);
-      setOneriler(sonuc);
-      setShowOneriler(sonuc.length > 0);
+      setOneriler(sonuc); setShowOneriler(sonuc.length > 0);
     }, 300);
     setAramaTimer(timer);
   };
 
   const musteriSec = (m: MusteriOneri) => {
-    setMusteri(m.ad_soyad);
-    setTelefon(m.telefon);
-    setAdres(m.adres || "");
-    setShowOneriler(false);
-    setOneriler([]);
+    setMusteri(m.ad_soyad); setTelefon(m.telefon); setAdres(m.adres || "");
+    setShowOneriler(false); setOneriler([]);
   };
 
-  const handleIlChange = (secilenIl: string) => {
-    setIl(secilenIl);
-    setIlce(""); setMahalle("");
-  };
-
-  const handleIlceChange = (secilenIlce: string) => {
-    setIlce(secilenIlce);
-    setMahalle("");
-  };
+  const handleIlChange = (secilenIl: string) => { setIl(secilenIl); setIlce(""); setMahalle(""); };
+  const handleIlceChange = (secilenIlce: string) => { setIlce(secilenIlce); setMahalle(""); };
 
   const ilcelerListesi = il ? Object.keys(ADRES_DATA[il] || {}) : [];
-  const gosterilecekIlceler = yetkiliIlceler.length > 0 
-    ? ilcelerListesi.filter(ilceAdi => yetkiliIlceler.includes(ilceAdi))
-    : ilcelerListesi;
-
+  const gosterilecekIlceler = yetkiliIlceler.length > 0 ? ilcelerListesi.filter(ilceAdi => yetkiliIlceler.includes(ilceAdi)) : ilcelerListesi;
   const mahallelerListesi = (il && ilce) ? (ADRES_DATA[il][ilce] || []) : [];
 
-  const kalemEkle = () => {
-    if (ht.length === 0) return;
-    setKalemler([...kalemler, { turId: ht[0].id, adet: 1, m2: 0 }]);
-  };
-
+  const kalemEkle = () => { if (ht.length === 0) return; setKalemler([...kalemler, { turId: ht[0].id, adet: 1, m2: 0 }]); };
   const kalemGuncelle = (i: number, f: keyof HaliKalemi, v: string | number) => {
-    const k = [...kalemler];
-    k[i] = { ...k[i], [f]: f === "turId" ? v : Number(v) };
-    setKalemler(k);
+    const k = [...kalemler]; k[i] = { ...k[i], [f]: f === "turId" ? v : Number(v) }; setKalemler(k);
   };
-
   const kalemSil = (i: number) => setKalemler(kalemler.filter((_, idx) => idx !== i));
 
   const toplamFiyat = kalemler.reduce((sum, k) => {
@@ -195,23 +141,21 @@ export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId
     return sum + (tur?.birimFiyat || 0) * (k.m2 || 0) * (k.adet || 1);
   }, 0);
 
+  // 📍 YENİ EKLENDİ: Müşterinin Ödenmemiş Geçmiş Borçlarını Hesapla
+  const odenmemisBorc = (orders || [])
+    .filter(o => o.telefon === telefon && o.id !== order?.id && o.odendi !== true)
+    .reduce((sum, o) => sum + (o.fiyat || 0), 0);
+
   const handleSave = async () => {
     if (!musteri.trim()) { setErr("Müşteri adı zorunludur."); return; }
     if (!telefon.trim()) { setErr("Telefon zorunludur."); return; }
     if (!il || !ilce) { setErr("Lütfen İl ve İlçe seçiniz."); return; } 
     if (kalemler.length === 0) { setErr("En az 1 halı kalemi ekleyin."); return; }
     if (isAdmin && !firmaId) { setErr("Firma seçiniz."); return; }
-    setSaving(true);
-    setErr("");
+    setSaving(true); setErr("");
     try {
       const tamAdres = [mahalle, acikAdres, ilce, il].filter(Boolean).join(" - ");
-      
-      await onSave({ 
-        musteri, telefon, 
-        il, ilce, mahalle, acik_adres: acikAdres, 
-        adres: tamAdres,
-        notlar, tarih, firmaId: seciliFirmaId, haliKalemleri: kalemler 
-      });
+      await onSave({ musteri, telefon, il, ilce, mahalle, acik_adres: acikAdres, adres: tamAdres, notlar, tarih, firmaId: seciliFirmaId, haliKalemleri: kalemler });
       onClose();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Kayıt hatası");
@@ -226,9 +170,7 @@ export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId
         <div style={{ width: 40, height: 4, background: "#E2E8F0", borderRadius: 4, margin: "0 auto 20px" }} />
 
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>
-            {order ? "✏️ Siparişi Düzenle" : "➕ Yeni Sipariş"}
-          </h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{order ? "✏️ Siparişi Düzenle" : "➕ Yeni Sipariş"}</h2>
           <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
 
@@ -265,43 +207,43 @@ export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId
           </div>
         </div>
 
-        {/* 📍 AKILLI ADRES SİSTEMİ BÖLÜMÜ */}
+        {/* 📍 YENİ: BORÇ UYARISI AFİŞİ */}
+        {odenmemisBorc > 0 && (
+          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 24 }}>⚠️</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#DC2626" }}>Ödenmemiş Borç Uyarısı!</div>
+              <div style={{ fontSize: 13, color: "#991B1B", marginTop: 2 }}>
+                Bu müşterinin geçmiş siparişlerinden toplam <strong style={{fontSize: 15}}>₺{odenmemisBorc.toLocaleString()}</strong> ödenmemiş bakiyesi bulunmaktadır.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ background: "#F8FAFC", padding: 16, borderRadius: 12, border: "1px solid #E2E8F0", marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: "#475569", marginBottom: 12, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 6 }}>
             📍 Teslimat Adresi
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 4 }}>İL *</label>
-              <select
-                style={{ ...inp, background: kilitliIl ? "#F1F5F9" : "#fff", cursor: kilitliIl ? "not-allowed" : "pointer" }}
-                value={il} onChange={(e) => handleIlChange(e.target.value)} disabled={!!kilitliIl}
-              >
+              <select style={{ ...inp, background: kilitliIl ? "#F1F5F9" : "#fff", cursor: kilitliIl ? "not-allowed" : "pointer" }} value={il} onChange={(e) => handleIlChange(e.target.value)} disabled={!!kilitliIl}>
                 <option value="">İl Seçiniz</option>
                 {ILLER.map((i) => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
-
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 4 }}>İLÇE *</label>
-              <select
-                style={{ ...inp, cursor: !il ? "not-allowed" : "pointer", background: !il ? "#F1F5F9" : "#fff" }}
-                value={ilce} onChange={(e) => handleIlceChange(e.target.value)} disabled={!il}
-              >
+              <select style={{ ...inp, cursor: !il ? "not-allowed" : "pointer", background: !il ? "#F1F5F9" : "#fff" }} value={ilce} onChange={(e) => handleIlceChange(e.target.value)} disabled={!il}>
                 <option value="">İlçe Seçiniz</option>
                 {gosterilecekIlceler.map((i) => <option key={i} value={i}>{i}</option>)}
               </select>
             </div>
           </div>
-
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", display: "block", marginBottom: 4 }}>MAHALLE</label>
-              <select
-                style={{ ...inp, cursor: !ilce ? "not-allowed" : "pointer", background: !ilce ? "#F1F5F9" : "#fff" }}
-                value={mahalle} onChange={(e) => setMahalle(e.target.value)} disabled={!ilce}
-              >
+              <select style={{ ...inp, cursor: !ilce ? "not-allowed" : "pointer", background: !ilce ? "#F1F5F9" : "#fff" }} value={mahalle} onChange={(e) => setMahalle(e.target.value)} disabled={!ilce}>
                 <option value="">Mahalle Seçiniz</option>
                 {mahallelerListesi.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
@@ -333,9 +275,7 @@ export function OrderModal({ order, ht, firmalar, firma, isAdmin, token, firmaId
 
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>
-              Halı Kalemleri ({toplamAdet(kalemler)} adet · {toplamM2(kalemler)} m²)
-            </label>
+            <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>Halı Kalemleri ({toplamAdet(kalemler)} adet · {toplamM2(kalemler)} m²)</label>
             <button onClick={kalemEkle} style={{ background: "#EFF6FF", color: "#2563EB", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Ekle</button>
           </div>
 

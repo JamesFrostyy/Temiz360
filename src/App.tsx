@@ -28,10 +28,13 @@ const ayBasi = () => {
 // ─── RAPOR ────────────────────────────────────────────────────────────────────
 function RaporEkrani({ orders, ht }: { orders: Siparis[]; ht: HaliTuru[] }) {
   const toplamCiro = orders.reduce((s, o) => s + o.fiyat, 0);
-  const tamamlananCiro = orders.filter((o) => o.durum === "teslim_edildi").reduce((s, o) => s + o.fiyat, 0);
-  const bekleyenCiro = orders.filter((o) => o.durum !== "teslim_edildi").reduce((s, o) => s + o.fiyat, 0);
+  
+  // 📍 YENİ MANTIK: Artık "Teslim Edildi" değil, "Odendi" onay kutusuna bakıyoruz!
+  const tamamlananCiro = orders.filter((o) => o.odendi === true).reduce((s, o) => s + o.fiyat, 0);
+  const bekleyenCiro = orders.filter((o) => o.odendi !== true).reduce((s, o) => s + o.fiyat, 0);
+  
   const ortalamaSiparis = orders.length ? Math.round(toplamCiro / orders.length) : 0;
-  const aktifSiparis = orders.filter((o) => !["teslim_edildi"].includes(o.durum)).length;
+  const odenmemisSiparisSayisi = orders.filter((o) => o.odendi !== true).length;
 
   const turDagilimi = ht.map((t) => {
     const m2 = orders.flatMap((o) => o.haliKalemleri || []).filter((k) => k.turId === t.id).reduce((s, k) => s + (k.m2 || 0) * (k.adet || 1), 0);
@@ -53,8 +56,8 @@ function RaporEkrani({ orders, ht }: { orders: Siparis[]; ht: HaliTuru[] }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
         {[
           { label: "Toplam Ciro", value: `₺${toplamCiro.toLocaleString()}`, sub: "", gradient: "linear-gradient(135deg,#1E40AF,#3B82F6)", light: false },
-          { label: "Kasadaki (Teslim)", value: `₺${tamamlananCiro.toLocaleString()}`, sub: `Alacak: ₺${bekleyenCiro.toLocaleString()}`, gradient: "", light: true, color: "#059669" },
-          { label: "Tahsil Edilecek", value: `₺${bekleyenCiro.toLocaleString()}`, sub: `${aktifSiparis} aktif sipariş`, gradient: "", light: true, color: "#F97316" },
+          { label: "Kasadaki (Tahsil Edilen)", value: `₺${tamamlananCiro.toLocaleString()}`, sub: `Alacak: ₺${bekleyenCiro.toLocaleString()}`, gradient: "", light: true, color: "#059669" },
+          { label: "Tahsil Edilecek", value: `₺${bekleyenCiro.toLocaleString()}`, sub: `${odenmemisSiparisSayisi} ödenmemiş sipariş`, gradient: "", light: true, color: "#F97316" },
           { label: "Ort. Sepet Tutarı", value: `₺${ortalamaSiparis.toLocaleString()}`, sub: "Sipariş başına kazanç", gradient: "", light: true, color: "#0F172A" },
         ].map((k, i) => (
           <div key={i} style={{ background: k.gradient || "#fff", borderRadius: 16, padding: 20, border: k.light ? "1px solid #E2E8F0" : "none", boxShadow: k.light ? "0 4px 6px -1px rgba(0,0,0,0.05)" : "0 10px 15px -3px rgba(59,130,246,0.3)" }}>
@@ -178,7 +181,7 @@ export default function App() {
 
   const filteredCiro = filtered.reduce((sum, o) => sum + (o.fiyat || 0), 0);
 
-  const { handleSave, handleStatus, handleSms, handleSil } = useOrderActions({
+  const { handleSave, handleStatus, handleSms, handleOdeme, handleSil } = useOrderActions({
     user,
     orders,
     setOrders,
@@ -518,6 +521,7 @@ export default function App() {
           firma={firmalar.find((f) => f.id === firmaId) ?? null}
           onClose={() => setSel(null)}
           onStatusChange={handleStatus}
+          onOdeme={handleOdeme}
           onEdit={(o) => { setEditing(o); setShowOrder(true); setSel(null); }}
           onSmsOpen={(o) => { setSmsOrder(o); setSel(null); }}
           onDelete={(id) => { handleSil(id); setSel(null); }}
@@ -527,6 +531,7 @@ export default function App() {
       {showOrder && (
         <OrderModal
           order={editing}
+          orders={orders}
           ht={ht}
           firmalar={firmalar}
           firma={firmalar.find(f => f.id === firmaId)}
