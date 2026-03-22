@@ -1,4 +1,4 @@
-import { Siparis, HaliTuru, Firma, ToastState } from "../types";
+import { Siparis, HaliTuru, Firma } from "../types";
 import { dbKaydet, dbSil } from "../lib/db";
 import { sbFetch } from "../lib/supabase";
 import { OrderForm } from "../components/OrderModal"; 
@@ -27,6 +27,8 @@ export function useOrderActions({
   showToast,
 }: UseOrderActionsParams) {
 
+  const isStarter = !firma?.paket || firma?.paket === "starter" || firma?.hesap_durum === "demo";
+
   const handleSave = async (form: OrderForm, editingId: string | null) => {
     if (!user) return;
     if (!isAdmin && !hesapAktif) {
@@ -50,10 +52,10 @@ export function useOrderActions({
     setOrders((prev) => prev.map((o) => o.id === id ? { ...o, durum } : o));
     showToast("Durum güncellendi!");
 
-    // 2. OTOMATİK SMS KONTROLÜ
+    // 2. OTOMATİK SMS KONTROLÜ (Sadece Pro/Ent paketlerde çalışır)
     const ilgiliSiparis = orders.find((o) => o.id === id);
 
-    if (firma?.oto_sms_aktif && firma?.oto_sms_durumlar?.includes(durum) && ilgiliSiparis) {
+    if (!isStarter && firma?.oto_sms_aktif && firma?.oto_sms_durumlar?.includes(durum) && ilgiliSiparis) {
       const baslik = firma?.netgsm_baslik || firma?.ad || "Hali Yikama";
       const otoMesaj = `Sayin ${ilgiliSiparis.musteri},\nSiparisiniz "${durum}" asamasina gecmistir.\nBizi tercih ettiginiz icin tesekkurler.\n${baslik}`;
       
@@ -70,13 +72,10 @@ export function useOrderActions({
   ) => {
     if (!user || !smsOrder) return;
     
-    // --- 🟢 WHATSAPP KREDİSİ DÜŞÜRME EKLENDİ ---
-    if (kanal === "wa_me") {
-      const isStarter = !firma?.paket || firma?.paket === "starter";
+    // Sadece Starter'da WhatsApp kredisi düşür
+    if (kanal === "wa_me" && isStarter) {
       const guncelWaKredi = firma?.wa_kredisi || 0;
-      
-      // Sadece Starter paketinde kredi düşür (Pro'da sınırsızdır)
-      if (isStarter && guncelWaKredi > 0) {
+      if (guncelWaKredi > 0) {
         await sbFetch(
           `firmalar?id=eq.${firmaId}`,
           { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ wa_kredisi: guncelWaKredi - 1 }) },
@@ -84,24 +83,16 @@ export function useOrderActions({
         );
       }
     }
-    // ------------------------------------------
 
-    if (kanal === "sms" && otomatikMi) {
-      
-      // KREDİ KONTROLÜ
-      const guncelKredi = firma?.sms_kredisi || 0;
-      if (guncelKredi <= 0) {
-        showToast("Kredi yetersiz, otomatik SMS atılamadı.", "error");
-        return; 
-      }
+    if (kanal === "sms") {
+      if (isStarter) return; // Güvenlik kilidi
 
-      // FİRMA NETGSM BİLGİSİ KONTROLÜ
       const netgsmUser = firma?.netgsm_user;
       const netgsmPass = firma?.netgsm_pass;
       const smsBaslik = firma?.netgsm_baslik || firma?.ad?.slice(0, 11) || "Hali Yikama";
 
       if (!netgsmUser || !netgsmPass) {
-        showToast("NetGSM ayarlarınız eksik, otomatik mesaj gönderilemedi.", "error");
+        if (!otomatikMi) showToast("NetGSM ayarlarınız eksik!", "error");
         return;
       }
       
@@ -109,7 +100,6 @@ export function useOrderActions({
       if (tel.startsWith("0")) tel = "9" + tel;
       else if (tel.startsWith("5")) tel = "90" + tel;
 
-      // NETGSM PARAMETRELERİ
       const params = new URLSearchParams({
         usercode: netgsmUser,
         password: netgsmPass,
@@ -119,23 +109,15 @@ export function useOrderActions({
         dil: "TR",
       });
 
-      // =========================================================================
-      // 🧪 SADECE TEST/SİMÜLASYON MODU (Gerçek fetch isteği tamamen silindi)
-      // =========================================================================
-      console.log("🟠 [OTOMATİK] NETGSM'E GİDECEK OLAN URL:", `https://api.netgsm.com.tr/sms/send/get/?${params.toString()}`);
-      console.log("🟠 [OTOMATİK] TEST: İstek başarılı varsayıldı, kredi düşürülüyor...");
-      
-      showToast("Test: Otomatik SMS başarıyla simüle edildi!", "success");
-      
-      // Krediyi Düşür (Simülasyonun başarılı olduğunu kanıtlamak için)
-      await sbFetch(
-        `firmalar?id=eq.${firmaId}`,
-        { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ sms_kredisi: guncelKredi - 1 }) },
-        user.token
-      );
-      
-    } else if (kanal === "sms" && !otomatikMi) {
-      showToast("SMS başarıyla simüle edildi!", "success");
+      // Gerçek NetGSM İsteği atılır, Kredi Yıkanio'dan DEĞİL NetGSM'den düşer.
+      try {
+        fetch(`https://api.netgsm.com.tr/sms/send/get/?${params.toString()}`, { mode: 'no-cors' }).catch(console.error);
+        if (!otomatikMi) showToast("SMS başarıyla gönderildi!", "success");
+      } catch(e) {
+        if (!otomatikMi) showToast("SMS gönderim hatası.", "error");
+      }
+    } else if (kanal === "wa_me" && !otomatikMi) {
+      showToast("WhatsApp bildirimi kaydedildi!", "success");
     }
 
     // LOGLAMA VE ARAYÜZ GÜNCELLEME

@@ -29,7 +29,6 @@ body {
   .order-cards { display: flex !important; flex-direction: column; gap: 10px; }
 
   /* Header sıkıştır ve Mottoyu Gizle (Daralmayı önler) */
-  .header-firma-ad { display: none; }
   .header-motto { display: none !important; } 
 
   /* Filtre alanı tek satıra sığsın */

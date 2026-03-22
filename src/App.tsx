@@ -546,18 +546,7 @@ export default function App() {
           firma={firmalar.find((f) => f.id === firmaId) ?? null}
           onClose={() => setSmsOrder(null)}
           onSend={(durum, mesaj, kanal) => handleSms(smsOrder, durum, mesaj, kanal)}
-          onError={(msg) => showToast(msg, "error")} onKrediDus={async () => {
-            if (!user || !firmaId) return;
-            const mevcutFirma = firmalar.find((f) => f.id === firmaId);
-            const mevcutKredi = mevcutFirma?.sms_kredisi ?? 0;
-            const yeniKredi = Math.max(0, mevcutKredi - 1);
-            await sbFetch(
-              `firmalar?id=eq.${firmaId}`,
-              { method: "PATCH", prefer: "return=minimal", body: JSON.stringify({ sms_kredisi: yeniKredi }) },
-              user.token
-            );
-            yukle();
-          }}
+          onError={(msg) => showToast(msg, "error")}
         />
       )}
 

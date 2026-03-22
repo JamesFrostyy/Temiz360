@@ -78,8 +78,12 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
   const paketKey = (firma.paket || "starter") as PaketTip;
   const paket = PAKETLER[paketKey];
   const durumCfg = HESAP_DURUM_CFG[firma.hesap_durum || "demo"];
-  const smsKredisi = firma.sms_kredisi ?? 0;
-  const smsYuzde = Math.min(100, Math.round((smsKredisi / 100) * 100)); // Starter 100 limite göre yüzde hesaplar
+  
+  // 📍 YENİ: Demo ve Starter'ı ortak limitleme mantığı
+  const isStarterOrDemo = !firma.paket || firma.paket === "starter" || firma.hesap_durum === "demo";
+  const waKredisi = firma.wa_kredisi ?? 0;
+  const waYuzde = Math.min(100, Math.max(0, Math.round((waKredisi / 100) * 100)));
+  
   const demKalan = gunFarki(firma.demo_bitis);
   const odemeKalan = gunFarki(firma.sonraki_odeme_tarihi);
   const paketSirasi: PaketTip[] = ["starter", "pro", "enterprise"];
@@ -284,26 +288,25 @@ export function HesabimEkrani({ firma, token, onYukle }: HesabimEkraniProps) {
         {/* 3. SÜTUN: BİLDİRİM, ÖZELLİKLER VE DESTEK */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           
-          {/* YENİ: Pakete Göre Değişen Bildirim Alanı */}
           <div style={{ background: "#fff", borderRadius: 16, padding: 20, border: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
             
-            {paketKey === "starter" ? (
+            {isStarterOrDemo ? (
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>WhatsApp Bildirim Hakkı</div>
-                  <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: smsKredisi > 10 ? "#F0FDF4" : smsKredisi > 0 ? "#FFF7ED" : "#FEF2F2", color: smsKredisi > 10 ? "#059669" : smsKredisi > 0 ? "#D97706" : "#DC2626", border: `1px solid ${smsKredisi > 10 ? "#BBF7D0" : smsKredisi > 0 ? "#FDE68A" : "#FECACA"}` }}>
-                    {smsKredisi > 10 ? "✓ Yeterli" : smsKredisi > 0 ? "⚠️ Azalıyor" : "🚫 Tükendi"}
+                  <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: waKredisi > 10 ? "#F0FDF4" : waKredisi > 0 ? "#FFF7ED" : "#FEF2F2", color: waKredisi > 10 ? "#059669" : waKredisi > 0 ? "#D97706" : "#DC2626", border: `1px solid ${waKredisi > 10 ? "#BBF7D0" : waKredisi > 0 ? "#FDE68A" : "#FECACA"}` }}>
+                    {waKredisi > 10 ? "✓ Yeterli" : waKredisi > 0 ? "⚠️ Azalıyor" : "🚫 Tükendi"}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 10 }}>
-                  <span style={{ fontSize: 36, fontWeight: 800, color: smsKredisi > 10 ? "#059669" : smsKredisi > 0 ? "#D97706" : "#DC2626" }}>{smsKredisi}</span>
+                  <span style={{ fontSize: 36, fontWeight: 800, color: waKredisi > 10 ? "#059669" : waKredisi > 0 ? "#D97706" : "#DC2626" }}>{waKredisi}</span>
                   <span style={{ fontSize: 14, color: "#64748B" }}>hak kaldı</span>
                 </div>
                 <div style={{ width: "100%", height: 8, background: "#F1F5F9", borderRadius: 6, overflow: "hidden", marginBottom: 8 }}>
-                  <div style={{ width: `${smsYuzde}%`, height: "100%", borderRadius: 6, background: smsKredisi > 10 ? "linear-gradient(90deg,#059669,#34D399)" : smsKredisi > 0 ? "linear-gradient(90deg,#D97706,#FBBF24)" : "#DC2626" }} />
+                  <div style={{ width: `${waYuzde}%`, height: "100%", borderRadius: 6, background: waKredisi > 10 ? "linear-gradient(90deg,#059669,#34D399)" : waKredisi > 0 ? "linear-gradient(90deg,#D97706,#FBBF24)" : "#DC2626" }} />
                 </div>
                 <div style={{ fontSize: 12, color: "#64748B", marginTop: 10 }}>
-                  Starter pakette aylık 100 ücretsiz WhatsApp (wa.me) bildirim hakkınız bulunur. Limitiniz dolduğunda manuel gönderim yapabilirsiniz.
+                  Demo hesaplarda ve Starter pakette aylık 100 ücretsiz WhatsApp (wa.me) bildirim hakkınız bulunur. Sınırsız gönderim ve Otomatik SMS için paketinizi yükseltin.
                 </div>
               </>
             ) : (
