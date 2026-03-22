@@ -141,7 +141,6 @@ export default function App() {
   const [filterFirma, setFilterFirma] = useState("Tümü");
   const [search, setSearch] = useState("");
   
-  // 📍 YENİ: Tarih Aralığı Filtreleri
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
@@ -149,7 +148,6 @@ export default function App() {
   const [editing, setEditing] = useState<Siparis | null>(null);
   const [smsOrder, setSmsOrder] = useState<Siparis | null>(null);
   
-  // 📍 YENİ: İlk açılış sekmesi artık "raporlar"
   const [activeTab, setActiveTab] = useState("raporlar");
   
   const [showHali, setShowHali] = useState(false);
@@ -163,11 +161,10 @@ export default function App() {
   useEffect(() => { 
     if (authState === "app") {
       yukle();
-      setActiveTab("raporlar"); // 📍 Her girişte zorla Raporlar sekmesini açtır
+      setActiveTab("raporlar"); 
     }
   }, [authState, yukle]);
 
-  // 📍 GÜNCELLENMİŞ FİLTRELEME MANTIĞI (Tarih eklendi)
   const filtered = orders.filter((o) => {
     if (filterStatus !== "Tümü" && o.durum !== filterStatus) return false;
     if (filterFirma !== "Tümü" && o.firmaId !== filterFirma) return false;
@@ -179,7 +176,6 @@ export default function App() {
     return true;
   });
 
-  // Filtrelenen Siparişlerin Toplam Cirosu
   const filteredCiro = filtered.reduce((sum, o) => sum + (o.fiyat || 0), 0);
 
   const { handleSave, handleStatus, handleSms, handleSil } = useOrderActions({
@@ -208,7 +204,6 @@ export default function App() {
     showToast("Fiyat listesi güncellendi!");
   };
 
-  // ─── AUTH EKRANLARI ──────────────────────────────────────────────────────────
   if (authState === "loading") {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0F172A" }}>
@@ -258,7 +253,7 @@ export default function App() {
 
   // ─── ANA EKRAN ───────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Poppins', sans-serif", overflowY: "scroll" }}>
+    <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Poppins', sans-serif" }}>
       {/* Header */}
       <header style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "0 20px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -273,11 +268,11 @@ export default function App() {
                     Yıkan<span style={{ color: "#38BDF8" }}>io</span>
                   </div>
                   {/* YENİ: SEO ve Marka Mottosu */}
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "3px 8px", borderRadius: 8, border: "1px solid #BFDBFE", letterSpacing: "0.2px", whiteSpace: "nowrap" }}>
+                  <span className="header-motto" style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "3px 8px", borderRadius: 8, border: "1px solid #BFDBFE", letterSpacing: "0.2px", whiteSpace: "nowrap" }}>
                     🚀 Akıllı Halı Yıkama Yönetimi
                   </span>
                 </div>
-                <div style={{ color: "#64748B", fontSize: "11px", marginTop: "4px", fontWeight: 600, letterSpacing: "0.5px" }}>
+                <div className="header-firma-ad" style={{ color: "#64748B", fontSize: "11px", marginTop: "4px", fontWeight: 600, letterSpacing: "0.5px" }}>
                   {firmaAd ? `🏢 ${firmaAd.toUpperCase()}` : user?.email}
                 </div>
               </div>
@@ -308,11 +303,10 @@ export default function App() {
         <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 20px 100px", width: "100%", boxSizing: "border-box" }}>
           <div style={{ background: "#fff", borderRadius: 20, padding: 24, border: "1px solid #E2E8F0", boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)" }}>
             <h2 style={{ margin: "0 0 20px", fontSize: 22, fontWeight: 800, color: "#0F172A" }}>🪄 Fiyat Listesi</h2>
-            {/* Eski popup mantığını direkt sayfa içine gömdük, iptal tuşunu gizledik */}
             <div style={{ margin: "-20px" }}>
               <HaliModal 
                 turler={ht} 
-                onClose={() => {}} // İptale basılırsa bir şey yapmasına gerek yok çünkü artık sayfa
+                onClose={() => {}} 
                 onSave={handleHaliTurleriSave} 
               />
             </div>
@@ -331,7 +325,6 @@ export default function App() {
       {activeTab === "siparisler" && (
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px 100px", width: "100%", boxSizing: "border-box" }}>
 
-          {/* Hesap Pasif Uyarısı */}
           {!isAdmin && !hesapAktif && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: "14px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12, fontFamily: "'Poppins', sans-serif" }}>
               <span style={{ fontSize: 24 }}>🔴</span>
@@ -347,11 +340,10 @@ export default function App() {
             </div>
           )}
 
-          {/* 📍 YENİ: GELİŞMİŞ FİLTRELEME PANELİ */}
+          {/* FİLTRELEME PANELİ */}
           <div style={{ background: "#fff", padding: "16px 20px", borderRadius: 16, border: "1px solid #E2E8F0", marginBottom: 20, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.02)" }}>
              
-             {/* Üst Kısım: Arama ve Hızlı Butonlar */}
-             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+             <div className="filter-row" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", flex: 1 }}>
                    <input 
                      value={search} 
@@ -368,7 +360,6 @@ export default function App() {
                    </select>
                 </div>
                 
-                {/* Hızlı Tarih Butonları */}
                 <div style={{ display: "flex", gap: 8 }}>
                    <button onClick={() => { setStartDate(bugunTarih()); setEndDate(bugunTarih()); }} style={{ padding: "8px 16px", fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0", background: "#F8FAFC", cursor: "pointer", fontWeight: 600, color: "#475569" }}>Bugün</button>
                    <button onClick={() => { setStartDate(ayBasi()); setEndDate(""); }} style={{ padding: "8px 16px", fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0", background: "#F8FAFC", cursor: "pointer", fontWeight: 600, color: "#475569" }}>Bu Ay</button>
@@ -376,17 +367,18 @@ export default function App() {
                 </div>
              </div>
 
-             {/* Alt Kısım: Tarih Seçici ve Özet */}
+             {/* TARIH VE ÖZET */}
              <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between", borderTop: "1px dashed #E2E8F0", paddingTop: 16 }}>
                 
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                   <div style={{ fontSize: 12, fontWeight: 800, color: "#64748B", letterSpacing: "0.5px" }}>TARİH ARALIĞI:</div>
-                   <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, outline: "none", fontFamily: "inherit" }} />
-                   <span style={{ color: "#94A3B8", fontWeight: 800 }}>-</span>
-                   <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, outline: "none", fontFamily: "inherit" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: 1 }}>
+                   <div style={{ fontSize: 12, fontWeight: 800, color: "#64748B", letterSpacing: "0.5px" }}>TARİH:</div>
+                   <div className="date-filter-wrapper" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                     <input type="date" className="date-input" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, outline: "none", fontFamily: "inherit" }} />
+                     <span style={{ color: "#94A3B8", fontWeight: 800 }}>-</span>
+                     <input type="date" className="date-input" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12, outline: "none", fontFamily: "inherit" }} />
+                   </div>
                 </div>
 
-                {/* Filtre Özeti */}
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <div style={{ fontSize: 13, color: "#64748B" }}>Bulunan: <strong style={{ color: "#0F172A", fontSize: 15 }}>{filtered.length}</strong> sipariş</div>
                   <div style={{ padding: "6px 14px", background: "#F0FDF4", borderRadius: 8, border: "1px solid #BBF7D0", color: "#059669", fontWeight: 800, fontSize: 15 }}>
@@ -397,7 +389,7 @@ export default function App() {
              </div>
           </div>
 
-          {/* Tablo - DESKTOP (width: 100% sorunu çözüldü) */}
+          {/* Tablo - DESKTOP */}
           <div className="order-table" style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", overflow: "hidden", width: "100%" }}>
             {loading ? (
               <div style={{ padding: 60, textAlign: "center" }}>
@@ -454,7 +446,6 @@ export default function App() {
 
           {/* Kartlar - MOBİL */}
           <div className="order-cards">
-            {/* (Mobil kart kodu aynı bırakıldı) */}
             {loading ? (
               <div style={{ padding: 40, textAlign: "center" }}>
                 <div style={{ width: 36, height: 36, border: "3px solid #E2E8F0", borderTop: "3px solid #3B82F6", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto" }} />
@@ -602,7 +593,7 @@ export default function App() {
   );
 }
 
-// ─── LOGIN & SET PASSWORD EKRANLARI AYNEN DEVAM EDİYOR ─────────────────────────
+// ─── LOGIN & SET PASSWORD EKRANLARI ─────────────────────────
 function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

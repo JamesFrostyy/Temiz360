@@ -1,5 +1,10 @@
 * { box-sizing: border-box; }
 
+/* SCROLLBAR JUMP (TİTREME) KESİN ÇÖZÜMÜ */
+html {
+  overflow-y: scroll; 
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -23,11 +28,16 @@ body {
   .order-table { display: none !important; }
   .order-cards { display: flex !important; flex-direction: column; gap: 10px; }
 
-  /* Header sıkıştır */
+  /* Header sıkıştır ve Mottoyu Gizle (Daralmayı önler) */
   .header-firma-ad { display: none; }
+  .header-motto { display: none !important; } 
 
   /* Filtre alanı tek satıra sığsın */
   .filter-row { flex-direction: column !important; }
   .filter-row input,
   .filter-row select { width: 100% !important; min-width: unset !important; }
+
+  /* YENİ: Tarih Filtresi Mobil Düzeni */
+  .date-filter-wrapper { width: 100%; justify-content: space-between; }
+  .date-input { flex: 1; min-width: 0; width: 100%; }
 }
